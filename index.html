@@ -1320,22 +1320,13 @@ function allPeriods(){
 }
 function renderPeriodView(period){
   const list = state.projects.filter(p=>p.period===period);
-  const finList = list.filter(p=>(Number(p.contractAmount)||0)>0);
-  const s = summarizeProjects(finList);
   const label = `
     <div class="section-label" style="margin-top:0;">
       <span class="num">期</span><span class="txt">${escapeHtml(period)}</span>
       <span class="count">全${list.length}件</span>
     </div>
-    <div class="fin-grid" style="margin-top:0;">
-      <div><div class="k">金額登録あり件数</div><div class="v">${s.count}件</div></div>
-      <div><div class="k">契約金額合計（税抜）</div><div class="v">${fmtYen(s.ca)}</div></div>
-      <div><div class="k">契約時粗利率</div><div class="v">${rateBadgeHtml(s.cr)}</div></div>
-      <div><div class="k">完成金額合計（税抜）</div><div class="v">${s.fCount?fmtYen(s.fa):"—"}</div></div>
-      <div><div class="k">完成時粗利率</div><div class="v">${s.fCount?rateBadgeHtml(s.fr):"—"}</div></div>
-    </div>
     <div class="subview-tabs">
-      <button class="sbtn ${periodSubView==='schedule'?'on':''}" data-subview="schedule">工程の予定確認</button>
+      <button class="sbtn ${periodSubView==='schedule'?'on':''}" data-subview="schedule">申請工程表</button>
       <button class="sbtn ${periodSubView==='table'?'on':''}" data-subview="table">売上表</button>
     </div>`;
   updateTimelineNumbering(list);
@@ -1358,6 +1349,16 @@ function updateTimelineNumbering(source){
 }
 
 function renderSalesTable(list){
+  const finList = list.filter(p=>(Number(p.contractAmount)||0)>0);
+  const s = summarizeProjects(finList);
+  const summary = `
+    <div class="fin-grid" style="margin-top:12px;">
+      <div><div class="k">金額登録あり件数</div><div class="v">${s.count}件</div></div>
+      <div><div class="k">契約金額合計（税抜）</div><div class="v">${fmtYen(s.ca)}</div></div>
+      <div><div class="k">契約時粗利率</div><div class="v">${rateBadgeHtml(s.cr)}</div></div>
+      <div><div class="k">完成金額合計（税抜）</div><div class="v">${s.fCount?fmtYen(s.fa):"—"}</div></div>
+      <div><div class="k">完成時粗利率</div><div class="v">${s.fCount?rateBadgeHtml(s.fr):"—"}</div></div>
+    </div>`;
   const sorted = list.slice().sort(kickoffOrderCompare);
   const rows = sorted.map(p=>{
     const cr = profitRate(p.contractAmount, p.contractCost);
@@ -1378,7 +1379,7 @@ function renderSalesTable(list){
       <td>${isProjectDone(p)?'<span class="badge done">完了</span>':isProjectLate(p)?'<span class="badge late">超過</span>':'進行中'}</td>
     </tr>`;
   }).join("");
-  return `
+  return summary + `
     <div class="summary-wrap" style="margin-top:12px;">
       <table class="summary-table">
         <thead><tr>
@@ -1460,14 +1461,14 @@ function renderProjectCard(p){
       </div>
     </div>
     <div class="p-body ${open?'open':''}" id="body-${p.id}">
-      ${renderFinancialGrid(p)}
       ${renderProjectInfoGrid(p)}
       <div class="section-label" style="margin-top:0;">
         <span class="num">02</span><span class="txt">タイムライン & タスク入力</span>
         <span class="count">${p.tasks.filter(t=>t.status==='完了').length}/${p.tasks.length} 完了</span>
       </div>
-      ${p.tasks.length===0?'<div class="no-task-note">工程タスクはまだ登録されていません。下のボタンから追加できます。</div>':renderGanttHtml(buildGanttRowsForTaskList(p.tasks), 10, {detailed:true})}
-      ${renderTaskTable(p, p.tasks)}
+      ${(()=>{ const displayTasks = p.tasks.filter(t=>t.name!=="着工日"); return displayTasks.length===0
+        ? '<div class="no-task-note">工程タスクはまだ登録されていません。下のボタンから追加できます。</div>'
+        : renderGanttHtml(buildGanttRowsForTaskList(displayTasks), 10, {detailed:true}) + renderTaskTable(p, displayTasks); })()}
       <div class="add-task-row">
         <button class="ghost small" data-add-task="${p.id}">＋ タスク行を追加</button>
       </div>
