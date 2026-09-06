@@ -303,6 +303,11 @@
   table.task-table tr.overdue td:nth-child(6){color:var(--danger);font-weight:700;}
   input.overdue-input{color:var(--danger);font-weight:700;border-color:var(--danger);}
   .overdue-flag{color:var(--danger);font-weight:700;margin-right:4px;}
+  .subview-tabs{display:flex;gap:6px;margin:14px 0 4px 0;}
+  .sbtn{padding:6px 14px;font-size:13px;border:1px solid var(--line);border-radius:var(--radius);cursor:pointer;background:var(--white);color:var(--text-muted);}
+  .sbtn:hover{background:var(--cream-dark);}
+  .sbtn.on{background:var(--wood);color:var(--white);border-color:var(--wood);font-weight:600;}
+  .summary-table tbody tr:hover td{background:var(--cream-dark);cursor:pointer;}
   table.task-table tr.row-notstarted{background:transparent;}
   table.task-table tr.row-progress{background:rgba(173,138,92,.09);}
   table.task-table tr.row-review{background:rgba(199,154,60,.12);}
@@ -563,6 +568,7 @@ let dirty = false;          // ローカル未保存(未pushする変更)あり
 let openProjectIds = new Set(); // カード開閉状態
 let completedSectionOpen = false; // 「完了した案件」セクションの開閉状態
 let timelineNumberById = {}; // 案件タイムラインの着工順番号(案件カードの表示にも流用)
+let periodSubView = "schedule"; // 期タブ内の表示切替: "schedule"(工程の予定確認) | "table"(売上表)
 
 function loadSettings(){
   try{
@@ -1061,7 +1067,7 @@ function bindGanttEvents(container){
 
 function jumpToProject(id){
   openProjectIds.add(id);
-  activeTab = "overview";
+  periodSubView = "schedule";
   renderAll();
   setTimeout(()=>{
     const card = document.querySelector(`.project-card[data-project="${id}"]`);
@@ -1326,8 +1332,47 @@ function renderPeriodView(period){
       <div><div class="k">契約時粗利率</div><div class="v">${rateBadgeHtml(s.cr)}</div></div>
       <div><div class="k">完成金額合計（税抜）</div><div class="v">${s.fCount?fmtYen(s.fa):"—"}</div></div>
       <div><div class="k">完成時粗利率</div><div class="v">${s.fCount?rateBadgeHtml(s.fr):"—"}</div></div>
+    </div>
+    <div class="subview-tabs">
+      <button class="sbtn ${periodSubView==='schedule'?'on':''}" data-subview="schedule">工程の予定確認</button>
+      <button class="sbtn ${periodSubView==='table'?'on':''}" data-subview="table">売上表</button>
     </div>`;
-  return label + renderOverview(list, {showAdd:false});
+  const body = periodSubView==="table" ? renderSalesTable(list) : renderOverview(list, {showAdd:false});
+  return label + body;
+}
+
+function renderSalesTable(list){
+  const sorted = list.slice().sort(kickoffOrderCompare);
+  const rows = sorted.map(p=>{
+    const cr = profitRate(p.contractAmount, p.contractCost);
+    const fr = profitRate(p.completeAmount, p.completeCost);
+    return `<tr data-jump="${p.id}" style="cursor:pointer;">
+      <td>${escapeHtml(p.name)||"(案件名未設定)"}</td>
+      <td>${escapeHtml(p.address)||"—"}</td>
+      <td>${escapeHtml(p.designStaff1)||"—"}</td>
+      <td>${escapeHtml(p.constructionManageStaff)||"—"}</td>
+      <td>${p.startDate?escapeHtml(p.startDate):p.startMonth?escapeHtml(p.startMonth):"—"}</td>
+      <td>${escapeHtml(p.deliveryMonth)||"—"}</td>
+      <td class="r">${fmtYen(p.contractAmount)}</td>
+      <td class="r">${fmtYen(p.contractCost)}</td>
+      <td class="r">${rateBadgeHtml(cr)}</td>
+      <td class="r">${p.completeAmount?fmtYen(p.completeAmount):"—"}</td>
+      <td class="r">${p.completeAmount?rateBadgeHtml(fr):"—"}</td>
+      <td>${isProjectDone(p)?'<span class="badge done">完了</span>':isProjectLate(p)?'<span class="badge late">超過</span>':'進行中'}</td>
+    </tr>`;
+  }).join("");
+  return `
+    <div class="summary-wrap" style="margin-top:12px;">
+      <table class="summary-table">
+        <thead><tr>
+          <th>案件名</th><th>所在地</th><th>設計担当</th><th>現場監督</th>
+          <th>着工</th><th>引渡予定</th>
+          <th class="r">契約金額</th><th class="r">契約原価</th><th class="r">契約粗利率</th>
+          <th class="r">完成金額</th><th class="r">完成粗利率</th><th>状況</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
 }
 
 function isProjectLate(p){
@@ -1538,6 +1583,12 @@ function renderStaffView(name){
 /* ===================== イベント: 全体タブ ===================== */
 function bindOverviewEvents(){
   const main = document.getElementById("mainArea");
+  main.querySelectorAll("[data-subview]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{ periodSubView = btn.dataset.subview; renderMain(); });
+  });
+  main.querySelectorAll("tr[data-jump]").forEach(tr=>{
+    tr.addEventListener("click", ()=>jumpToProject(tr.dataset.jump));
+  });
   const addBtn = document.getElementById("btnAddProject");
   if(addBtn) addBtn.addEventListener("click", ()=>openProjectModal(null));
 
