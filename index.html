@@ -195,6 +195,8 @@
 
   .gantt-body-row{display:flex;}
   .gantt-labels{flex:0 0 190px;border-right:1px solid var(--line);max-height:450px;overflow-y:auto;overflow-x:hidden;}
+  .gantt-wrap.tall .gantt-labels{max-height:850px;}
+  .gantt-wrap.tall .gantt-scroll{max-height:850px;}
   .gantt-label-row{
     font-size:11.5px;padding:0 8px;display:flex;align-items:center;border-bottom:1px solid var(--cream-dark);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;
@@ -917,7 +919,7 @@ function renderGanttHtml(rows, dayPx, opts){
   const labelsHtml = rows.map(r=>`<div class="gantt-label-row ${r.groupHeader?'group':''} ${r.child?'child':''}" style="height:${GANTT_ROW_H}px;" data-gantt-jump="${r.jumpId||''}" title="${escapeHtml(r.label)}">${escapeHtml(r.label)}</div>`).join("");
 
   return `
-  <div class="gantt-wrap ${detailed?'detailed':''}">
+  <div class="gantt-wrap ${detailed?'detailed':''} ${opts.tall?'tall':''}">
     <div class="gantt-header-row">
       <div class="gantt-label-header"></div>
       <div class="gantt-month-scroll">
@@ -1275,7 +1277,7 @@ function renderOverview(list, opts){
       <span class="count">${timelineSorted.length}件</span>
     </div>
     ${projectPhaseLegendHtml()}
-    ${renderGanttHtml(numberGanttRows(buildProjectGanttRows(timelineSorted)), 5, {pruneOld:false})}`;
+    ${renderGanttHtml(numberGanttRows(buildProjectGanttRows(timelineSorted)), 5, {pruneOld:false, tall:true})}`;
 
   let top = `
     <div class="section-label">
@@ -1288,15 +1290,13 @@ function renderOverview(list, opts){
     : ongoing.map(p=>renderProjectCard(p)).join("");
 
   let done = `
-    <div class="section-label" data-toggle-done style="cursor:pointer;">
-      <span class="num">03</span><span class="txt">完了した案件 ${completedSectionOpen?"▲":"▼"}</span>
+    <div class="section-label">
+      <span class="num">03</span><span class="txt">完了した案件</span>
       <span class="count">${completed.length}件</span>
     </div>`;
-  if(completedSectionOpen){
-    done += completed.length===0
-      ? `<div class="empty-state">完了した案件はまだありません。</div>`
-      : completed.map(p=>renderProjectCard(p)).join("");
-  }
+  done += completed.length===0
+    ? `<div class="empty-state">完了した案件はまだありません。</div>`
+    : completed.map(p=>renderProjectCard(p)).join("");
 
   return gantt + top + ongoingCards + done;
 }
