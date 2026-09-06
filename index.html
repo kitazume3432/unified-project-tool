@@ -798,9 +798,10 @@ function parseYMD(s){
 // "2026/7" のような 年/月 文字列を、その月の1日のDateに変換(着工予定月・完成予定月用)
 function parseYearMonth(s){
   if(!s) return null;
-  const m = String(s).match(/(\d{4})\D+(\d{1,2})/);
+  const m = String(s).match(/(\d{4})\D+(\d{1,2})(?:\D+(\d{1,2}))?/);
   if(!m) return null;
-  const d = new Date(parseInt(m[1],10), parseInt(m[2],10)-1, 1);
+  const day = m[3] ? parseInt(m[3],10) : 1;
+  const d = new Date(parseInt(m[1],10), parseInt(m[2],10)-1, day);
   return isNaN(d.getTime()) ? null : d;
 }
 function daysBetween(a,b){ return Math.round((b-a)/86400000); }
@@ -813,7 +814,7 @@ function ganttLegendHtml(){
     ["完了","var(--status-done)"],
     ["保留","var(--status-hold)"]
   ];
-  return `<div class="gantt-legend">${items.map(([l,c])=>`<span><i style="background:${c};"></i>${l}</span>`).join("")}<span>◆ 着手/完了のどちらか一方のみ入力されている日程</span><span>▲ 着工日・着工予定月</span><span>▽ 引渡予定月</span><span><i style="background:var(--wood-light);"></i>予定・概算(タスク未登録の案件)</span></div>`;
+  return `<div class="gantt-legend">${items.map(([l,c])=>`<span><i style="background:${c};"></i>${l}</span>`).join("")}<span>◆ 着手/完了のどちらか一方のみ入力されている日程</span><span>▲ 着工日・着工予定</span><span>▽ 完成予定月</span><span><i style="background:var(--wood-light);"></i>予定・概算(タスク未登録の案件)</span></div>`;
 }
 
 // 案件タイムライン(着工〜引渡のフェーズバー)専用の凡例
@@ -823,9 +824,9 @@ function projectPhaseLegendHtml(){
     ["施工中","var(--wood)"],
     ["完了","var(--status-done)"],
     ["予定・概算(タスク未登録)","var(--status-planned)"],
-    ["引渡予定を過ぎて未完了","var(--danger)"]
+    ["完成予定を過ぎて未完了","var(--danger)"]
   ];
-  return `<div class="gantt-legend">${items.map(([l,c])=>`<span><i style="background:${c};"></i>${l}</span>`).join("")}<span>▲ 着工日・着工予定月</span><span>▽ 引渡予定月</span></div>`;
+  return `<div class="gantt-legend">${items.map(([l,c])=>`<span><i style="background:${c};"></i>${l}</span>`).join("")}<span>▲ 着工日・着工予定</span><span>▽ 完成予定月</span></div>`;
 }
 
 // rows: [{label, jumpId, segments:[{startDate:Date, endDate:Date|null, color, title, milestone:bool}]}]
@@ -976,7 +977,7 @@ function buildProjectGanttRows(projectList){
     const approxOnly = p.tasks.length===0; // タスクが未登録の案件は概算表示
     const progress = projectProgress(p);
     const startLabel = p.startDate ? `着工${p.startDate}` : p.startMonth ? `着工予定${p.startMonth}` : "着工未定";
-    const endLabel = p.deliveryMonth ? `引渡予定${p.deliveryMonth}` : "引渡未定";
+    const endLabel = p.deliveryMonth ? `完成予定${p.deliveryMonth}` : "完成未定";
 
     // 申請関連タスク(確認申請・長期申請・検査機関チェック・行政提出など)の期間を別色で表示
     const applyTasks = p.tasks.filter(t=>APPLY_KEYWORDS.test(t.name||""));
@@ -1013,7 +1014,7 @@ function buildProjectGanttRows(projectList){
       segments.push({
         startDate: sd, endDate:null,
         color:"var(--charcoal)",
-        title: p.startDate ? `着工日: ${p.startDate}` : `着工予定月: ${p.startMonth}`,
+        title: p.startDate ? `着工日: ${p.startDate}` : `着工予定: ${p.startMonth}`,
         milestone:true, marker:"kickoff"
       });
     }
@@ -1022,7 +1023,7 @@ function buildProjectGanttRows(projectList){
       if(dmd) segments.push({
         startDate: dmd, endDate:null,
         color:"var(--status-review)",
-        title:`引渡予定月: ${p.deliveryMonth}`,
+        title:`完成予定月: ${p.deliveryMonth}`,
         milestone:true, marker:"delivery"
       });
     }
@@ -1279,7 +1280,7 @@ function renderOverview(list, opts){
 
   let gantt = `
     <div class="section-label">
-      <span class="num">01</span><span class="txt">案件タイムライン(着工順・着工/引渡の記載がある案件)</span>
+      <span class="num">01</span><span class="txt">案件タイムライン(着工順・着工/完成の記載がある案件)</span>
       <span class="count">${timelineSorted.length}件</span>
     </div>
     ${projectPhaseLegendHtml()}
@@ -1337,8 +1338,23 @@ function renderPeriodView(period){
       <button class="sbtn ${periodSubView==='schedule'?'on':''}" data-subview="schedule">工程の予定確認</button>
       <button class="sbtn ${periodSubView==='table'?'on':''}" data-subview="table">売上表</button>
     </div>`;
+  updateTimelineNumbering(list);
   const body = periodSubView==="table" ? renderSalesTable(list) : renderOverview(list, {showAdd:false});
   return label + body;
+}
+
+function updateTimelineNumbering(source){
+  const timelineTargets = source.filter(p=>effectiveKickoffDate(p) || p.deliveryMonth);
+  const timelineSorted = timelineTargets.slice().sort((a,b)=>{
+    const da = effectiveKickoffDate(a), db = effectiveKickoffDate(b);
+    if(!da && !db) return 0;
+    if(!da) return 1;
+    if(!db) return -1;
+    return da - db;
+  });
+  timelineNumberById = {};
+  timelineSorted.forEach((p,i)=>{ timelineNumberById[p.id] = i+1; });
+  return timelineSorted;
 }
 
 function renderSalesTable(list){
@@ -1346,8 +1362,9 @@ function renderSalesTable(list){
   const rows = sorted.map(p=>{
     const cr = profitRate(p.contractAmount, p.contractCost);
     const fr = profitRate(p.completeAmount, p.completeCost);
+    const num = timelineNumberById[p.id];
     return `<tr data-jump="${p.id}" style="cursor:pointer;">
-      <td>${escapeHtml(p.name)||"(案件名未設定)"}</td>
+      <td>${num?`<span class="tl-num">${num}.</span> `:""}${escapeHtml(p.name)||"(案件名未設定)"}</td>
       <td>${escapeHtml(p.address)||"—"}</td>
       <td>${escapeHtml(p.designStaff1)||"—"}</td>
       <td>${escapeHtml(p.constructionManageStaff)||"—"}</td>
@@ -1366,7 +1383,7 @@ function renderSalesTable(list){
       <table class="summary-table">
         <thead><tr>
           <th>案件名</th><th>所在地</th><th>設計担当</th><th>現場監督</th>
-          <th>着工</th><th>引渡予定</th>
+          <th>着工</th><th>完成予定</th>
           <th class="r">契約金額</th><th class="r">契約原価</th><th class="r">契約粗利率</th>
           <th class="r">完成金額</th><th class="r">完成粗利率</th><th>状況</th>
         </tr></thead>
@@ -1387,12 +1404,12 @@ function renderProjectMetaLines(p){
   const roles = ROLE_FIELDS.filter(r=>p[r.key]).map(r=>`${r.label}: ${escapeHtml(p[r.key])}`).join(" ／ ");
   const num = timelineNumberById[p.id];
   return `
-    <div class="p-name">${num?`<span class="tl-num">${num}.</span> `:""}${escapeHtml(p.name)||"(案件名未設定)"} ${isProjectDone(p)?'<span class="badge done">完了</span>':''} ${isProjectLate(p)?'<span class="badge late">引渡予定超過</span>':''} ${p.choki==="有"?'<span class="badge">長期優良</span>':''} ${p.officeType==="sei"?'<span class="badge office">設計事務所</span>':''} ${p.period?`<span class="badge period">${escapeHtml(p.period)}</span>`:''}</div>
+    <div class="p-name">${num?`<span class="tl-num">${num}.</span> `:""}${escapeHtml(p.name)||"(案件名未設定)"} ${isProjectDone(p)?'<span class="badge done">完了</span>':''} ${isProjectLate(p)?'<span class="badge late">完成予定超過</span>':''} ${p.choki==="有"?'<span class="badge">長期優良</span>':''} ${p.officeType==="sei"?'<span class="badge office">設計事務所</span>':''} ${p.period?`<span class="badge period">${escapeHtml(p.period)}</span>`:''}</div>
     <div class="p-meta">
       <span>${escapeHtml(p.address)||"建設地未設定"}</span>
       <span>${escapeHtml(p.constructionType)}${p.method?" / "+escapeHtml(p.method):""}${p.floors?" / "+escapeHtml(p.floors):""}</span>
       ${p.startDate?`<span>▲ 着工 ${escapeHtml(p.startDate)}</span>`:p.startMonth?`<span>▲ 着工予定 ${escapeHtml(p.startMonth)}</span>`:""}
-      ${p.deliveryMonth?`<span>▽ 引渡予定 ${escapeHtml(p.deliveryMonth)}</span>`:""}
+      ${p.deliveryMonth?`<span>▽ 完成予定 ${escapeHtml(p.deliveryMonth)}</span>`:""}
     </div>
     ${roles?`<div class="p-meta">${roles}</div>`:""}`;
 }
@@ -1694,15 +1711,13 @@ const PROJECT_FIELDS = [
   {key:"method", label:"工法", type:"text"},
   {key:"floors", label:"階数", type:"text"},
   {key:"choki", label:"長期優良住宅", type:"select", options:["有","無"]},
-  {key:"startDate", label:"着工日", type:"date"},
   {key:"designStaff1", label:"設計担当１", type:"text"},
   {key:"designStaff2", label:"設計担当２", type:"text"},
   {key:"applicationStaff", label:"申請担当", type:"text"},
   {key:"constructionManageStaff", label:"施工管理担当", type:"text"},
   {key:"daiku", label:"大工", type:"text"},
-  {key:"officeType", label:"案件種別", type:"select", options:["kan","sei"]},
-  {key:"startMonth", label:"着工予定月", type:"text"},
-  {key:"deliveryMonth", label:"引渡予定月", type:"text"},
+  {key:"startMonth", label:"着工予定", type:"text"},
+  {key:"deliveryMonth", label:"完成月", type:"text"},
   {key:"contractAmount", label:"契約金額（税抜）", type:"number"},
   {key:"contractCost", label:"契約原価", type:"number"},
   {key:"completeAmount", label:"完成金額（税抜）", type:"number"},
