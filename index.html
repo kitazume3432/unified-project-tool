@@ -1243,11 +1243,19 @@ function renderSummaryView(){
   `;
 }
 
+function kickoffOrderCompare(a,b){
+  const da = effectiveKickoffDate(a), db = effectiveKickoffDate(b);
+  if(!da && !db) return (a.sortOrder||0)-(b.sortOrder||0);
+  if(!da) return 1;
+  if(!db) return -1;
+  return da - db;
+}
+
 function renderOverview(list, opts){
   opts = opts || {};
   const source = list || state.projects;
-  const ongoing = source.filter(p=>!isProjectDone(p)).sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
-  const completed = source.filter(p=>isProjectDone(p)).sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
+  const ongoing = source.filter(p=>!isProjectDone(p)).sort(kickoffOrderCompare);
+  const completed = source.filter(p=>isProjectDone(p)).sort(kickoffOrderCompare);
   // 案件タイムラインには、着工(実績・予定)か引渡予定の記載がある案件をすべて対象にし、着工順(未定は末尾)に並べる
   const timelineTargets = source.filter(p=>effectiveKickoffDate(p) || p.deliveryMonth);
   const timelineSorted = timelineTargets.slice().sort((a,b)=>{
