@@ -1,5 +1,5 @@
 ============================================== 
-Update started: 令和8年09月06日 日 21:34:56.82 
+Update started: 令和8年09月06日 日 21:54:57.47 
 Folder: V:\AI\北爪\ツール更新\unified-project-tool 
 ============================================== 
-Overwrote index.html with: 統合案件管理ツール_v24.html 
+Overwrote index.html with: 統合案件管理ツール_v28.html 
