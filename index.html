@@ -568,7 +568,9 @@ let dirty = false;          // ローカル未保存(未pushする変更)あり
 let openProjectIds = new Set(); // カード開閉状態
 let completedSectionOpen = false; // 「完了した案件」セクションの開閉状態
 let timelineNumberById = {}; // 案件タイムラインの着工順番号(案件カードの表示にも流用)
-let periodSubView = "schedule"; // 期タブ内の表示切替: "schedule"(工程の予定確認) | "table"(売上表)
+let periodSubView = "schedule"; // 期タブ内の表示切替: "schedule"(申請工程表) | "table"(売上表)
+let periodStaffFilter = ""; // 期タブ内の設計担当１フィルター("" = 全体)
+let periodStaffFilterPeriod = ""; // ↑がどの期に対するものか(期が変わったらリセットする)
 
 function loadSettings(){
   try{
@@ -1320,6 +1322,17 @@ function allPeriods(){
 }
 function renderPeriodView(period){
   const list = state.projects.filter(p=>p.period===period);
+
+  // 期が変わったら担当フィルターをリセット
+  if(periodStaffFilterPeriod !== period){
+    periodStaffFilter = "";
+    periodStaffFilterPeriod = period;
+  }
+  const staffNames = Array.from(new Set(
+    list.filter(p=>p.officeType!=="sei" && p.designStaff1).map(p=>p.designStaff1.trim())
+  )).sort((a,b)=>a.localeCompare(b,"ja"));
+  const filteredList = periodStaffFilter ? list.filter(p=>p.designStaff1 && p.designStaff1.trim()===periodStaffFilter) : list;
+
   const label = `
     <div class="section-label" style="margin-top:0;">
       <span class="num">期</span><span class="txt">${escapeHtml(period)}</span>
@@ -1328,9 +1341,13 @@ function renderPeriodView(period){
     <div class="subview-tabs">
       <button class="sbtn ${periodSubView==='schedule'?'on':''}" data-subview="schedule">申請工程表</button>
       <button class="sbtn ${periodSubView==='table'?'on':''}" data-subview="table">売上表</button>
+    </div>
+    <div class="subview-tabs" style="margin-top:6px;">
+      <button class="sbtn ${periodStaffFilter===''?'on':''}" data-staff-filter="">全体</button>
+      ${staffNames.map(name=>`<button class="sbtn ${periodStaffFilter===name?'on':''}" data-staff-filter="${escapeHtml(name)}">${escapeHtml(name)}</button>`).join("")}
     </div>`;
-  updateTimelineNumbering(list);
-  const body = periodSubView==="table" ? renderSalesTable(list) : renderOverview(list, {showAdd:false});
+  updateTimelineNumbering(filteredList);
+  const body = periodSubView==="table" ? renderSalesTable(filteredList) : renderOverview(filteredList, {showAdd:false});
   return label + body;
 }
 
@@ -1603,6 +1620,9 @@ function bindOverviewEvents(){
   const main = document.getElementById("mainArea");
   main.querySelectorAll("[data-subview]").forEach(btn=>{
     btn.addEventListener("click", ()=>{ periodSubView = btn.dataset.subview; renderMain(); });
+  });
+  main.querySelectorAll("[data-staff-filter]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{ periodStaffFilter = btn.dataset.staffFilter; renderMain(); });
   });
   main.querySelectorAll("tr[data-jump]").forEach(tr=>{
     tr.addEventListener("click", ()=>jumpToProject(tr.dataset.jump));
