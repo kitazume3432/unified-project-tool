@@ -480,7 +480,8 @@
       <div class="field"><label>ファイルパス</label><input type="text" id="setPath" placeholder="unified-project-data.json"></div>
       <div class="field"><label>Personal Access Token</label><input type="password" id="setToken" placeholder="github_pat_..."></div>
       <div class="field" style="grid-column:1/-1;">
-        <label><input type="checkbox" id="setShowSales" style="width:auto;margin-right:6px;">売上表を表示する(お客様に画面をお見せする場合はオフのままにしてください)</label>
+        <label>売上表パスワード(空欄なら売上表自体を非表示にできます)</label>
+        <input type="text" id="setSalesPassword" placeholder="例: 1234">
       </div>
     </div>
     <div class="modal-sub" style="margin-top:18px;">データファイル(.json)から案件データを読み込み直す場合はこちら。現在のデータは上書きされます。</div>
@@ -608,6 +609,7 @@ let openProjectIds = new Set(); // カード開閉状態
 let completedSectionOpen = false; // 「完了した案件」セクションの開閉状態
 let timelineNumberById = {}; // 案件タイムラインの着工順番号(案件カードの表示にも流用)
 let periodSubView = "schedule"; // 期タブ内の表示切替: "schedule"(申請工程表) | "table"(売上表)
+let salesUnlocked = false; // 売上表をこのセッション内でパスワード解除済みかどうか
 let periodStaffFilter = ""; // 期タブ内の設計担当１フィルター("" = 全体)
 let periodStaffFilterPeriod = ""; // ↑がどの期に対するものか(期が変わったらリセットする)
 
@@ -616,7 +618,7 @@ function loadSettings(){
     const raw = localStorage.getItem(SETTINGS_KEY);
     if(raw) return JSON.parse(raw);
   }catch(e){}
-  return {owner:"kitazume3432", repo:"kansan-data", path:"unified-project-data.json", token:"", showSales:false};
+  return {owner:"kitazume3432", repo:"kansan-data", path:"unified-project-data.json", token:"", salesPassword:""};
 }
 function saveSettings(s){
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
@@ -1404,7 +1406,7 @@ function renderPeriodView(period){
   const list = state.projects.filter(p=>p.period===period);
 
   // 売上表の表示設定がオフの場合は、必ず申請工程表側に強制する
-  if(!settings.showSales && periodSubView==="table"){ periodSubView = "schedule"; }
+  if((!settings.salesPassword || !salesUnlocked) && periodSubView==="table"){ periodSubView = "schedule"; }
 
   // 期が変わったら担当フィルターをリセット
   if(periodStaffFilterPeriod !== period){
@@ -1429,7 +1431,7 @@ function renderPeriodView(period){
     </div>
     <div class="subview-tabs" style="flex-wrap:wrap;">
       <button class="sbtn ${periodSubView==='schedule'?'on':''}" data-subview="schedule">申請工程表</button>
-      ${settings.showSales?`<button class="sbtn ${periodSubView==='table'?'on':''}" data-subview="table">売上表</button>`:""}
+      ${settings.salesPassword?`<button class="sbtn ${periodSubView==='table'?'on':''}" data-subview="table">${salesUnlocked?'売上表':'🔒 売上表'}</button>`:""}
       <span style="width:10px;"></span>
       <button class="sbtn ${periodStaffFilter===''?'on':''}" data-staff-filter="">全体</button>
       ${staffNames.map(([norm,display])=>`<button class="sbtn ${periodStaffFilter===norm?'on':''}" data-staff-filter="${escapeHtml(norm)}">${escapeHtml(display)}</button>`).join("")}
@@ -1782,7 +1784,20 @@ function renderStaffView(name){
 function bindOverviewEvents(){
   const main = document.getElementById("mainArea");
   main.querySelectorAll("[data-subview]").forEach(btn=>{
-    btn.addEventListener("click", ()=>{ periodSubView = btn.dataset.subview; renderMain(); });
+    btn.addEventListener("click", ()=>{
+      const target = btn.dataset.subview;
+      if(target==="table" && settings.salesPassword && !salesUnlocked){
+        const input = prompt("売上表のパスワードを入力してください");
+        if(input === settings.salesPassword){
+          salesUnlocked = true;
+        }else{
+          if(input !== null) alert("パスワードが違います。");
+          return;
+        }
+      }
+      periodSubView = target;
+      renderMain();
+    });
   });
   main.querySelectorAll("[data-staff-filter]").forEach(btn=>{
     btn.addEventListener("click", ()=>{ periodStaffFilter = btn.dataset.staffFilter; renderMain(); });
@@ -1895,6 +1910,12 @@ function ensureStaffDatalist(){
   ensureFixedDatalist("floorsList", ["平屋","2階建て","3階建て"]);
   ensureFixedDatalist("designStaffList", ["北爪俊之","星野武由","山﨑恵美","関彩香","島田亜美","宮田峻誠"]);
   ensureFixedDatalist("constructionStaffList", ["小林豊","高井貴信","小林克雄","大塚将太","井上玲央","齋綾司"]);
+
+  // 設計事務所名: 既存データにある事務所名 + よく使うものを候補にする
+  const officeNames = Array.from(new Set(
+    state.projects.filter(p=>p.officeType==="sei" && p.designStaff1).map(p=>p.designStaff1.trim())
+  ));
+  ensureFixedDatalist("designOfficeList", officeNames);
 }
 
 function ensureFixedDatalist(id, options){
@@ -1972,6 +1993,18 @@ function openProjectModal(id, defaultPeriod){
   form.querySelectorAll('[data-key="contractAmount"],[data-key="contractCost"],[data-key="completeAmount"],[data-key="completeCost"]').forEach(el=>{
     el.addEventListener("input", updateModalRatePreview);
   });
+
+  // 「設計事務所案件」チェックの状態に応じて、設計担当欄の候補リストを切り替える
+  const officeCheckbox = form.querySelector('[data-key="officeType"]');
+  const designInputs = [form.querySelector('[data-key="designStaff1"]'), form.querySelector('[data-key="designStaff2"]')];
+  function updateDesignList(){
+    const isOffice = officeCheckbox && officeCheckbox.checked;
+    designInputs.forEach(el=>{ if(el) el.setAttribute("list", isOffice ? "designOfficeList" : "designStaffList"); });
+  }
+  if(officeCheckbox){
+    officeCheckbox.addEventListener("change", updateDesignList);
+    updateDesignList();
+  }
 }
 function updateModalRatePreview(){
   const form = document.getElementById("projectForm");
@@ -2022,7 +2055,7 @@ function openSettingsModal(){
   document.getElementById("setRepo").value = settings.repo||"";
   document.getElementById("setPath").value = settings.path||"";
   document.getElementById("setToken").value = settings.token||"";
-  document.getElementById("setShowSales").checked = !!settings.showSales;
+  document.getElementById("setSalesPassword").value = settings.salesPassword||"";
   document.getElementById("settingsModalBackdrop").classList.add("open");
 }
 function closeSettingsModal(){
@@ -2034,7 +2067,7 @@ function saveSettingsModal(){
     repo: document.getElementById("setRepo").value.trim(),
     path: document.getElementById("setPath").value.trim() || "kotei-kanri-data.json",
     token: document.getElementById("setToken").value.trim(),
-    showSales: document.getElementById("setShowSales").checked
+    salesPassword: document.getElementById("setSalesPassword").value.trim()
   };
   saveSettings(settings);
   closeSettingsModal();
