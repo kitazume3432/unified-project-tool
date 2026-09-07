@@ -200,11 +200,8 @@
   .gantt-wrap.detailed .gantt-month-row{height:30px;}
 
   .gantt-body-row{display:flex;}
-  .gantt-labels{flex:0 0 190px;border-right:1px solid var(--line);max-height:450px;overflow-y:auto;overflow-x:hidden;}
-  .gantt-wrap.tall .gantt-labels{max-height:none!important;overflow-y:visible!important;flex-basis:420px;}
-  .gantt-wrap.tall .gantt-scroll{max-height:none!important;overflow-y:visible!important;}
-  .gantt-wrap.tall{overflow:visible;}
-  .gantt-wrap.tall .gantt-body-row{overflow:visible;}
+  .gantt-labels{flex:0 0 190px;border-right:1px solid var(--line);overflow-y:visible;overflow-x:hidden;}
+  .gantt-wrap.tall .gantt-labels{flex-basis:420px;}
   .gantt-wrap.tall .gantt-label-header{flex-basis:420px;}
   .gantt-wrap.tall .gantt-label-row{font-size:11px;}
   .label-cols{display:flex;width:100%;height:100%;align-items:center;}
@@ -216,7 +213,7 @@
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;
   }
   .gantt-label-row:hover{background:var(--cream);}
-  .gantt-scroll{flex:1;max-height:450px;overflow-x:auto;overflow-y:auto;}
+  .gantt-scroll{flex:1;overflow-x:auto;overflow-y:visible;}
   .gantt-timeline{position:relative;}
   .gantt-body{position:relative;}
   .gantt-gridline{position:absolute;top:0;bottom:0;width:1px;background:var(--cream-dark);}
