@@ -967,7 +967,7 @@ function renderGanttHtml(rows, dayPx, opts){
   const labelColumns = opts.labelColumns; // [{title, width}] があれば列揃え表示にする
   const labelsHtml = rows.map(r=>{
     const inner = (labelColumns && r.cols)
-      ? `<div class="label-cols">${r.cols.map((c,i)=>`<span class="lc" style="width:${labelColumns[i].width}px;">${escapeHtml(c)}</span>`).join("")}</div>`
+      ? `<div class="label-cols">${r.cols.map((c,i)=>`<span class="lc" style="width:${labelColumns[i].width}px;">${c}</span>`).join("")}</div>`
       : escapeHtml(r.label);
     return `<div class="gantt-label-row ${r.groupHeader?'group':''} ${r.child?'child':''}" style="height:${GANTT_ROW_H}px;" data-gantt-jump="${r.jumpId||''}" title="${escapeHtml(r.label)}">${inner}</div>`;
   }).join("");
@@ -1081,9 +1081,12 @@ function buildProjectGanttRows(projectList){
       });
     }
     const shortAddr = stripPrefecture(p.address);
+    const colorMaps = getStaffColorMaps();
+    const designColHtml = p.designStaff1 ? staffDotHtml(p.designStaff1.trim(), colorMaps.design.get(p.designStaff1.trim())||"#999") : "";
+    const supColHtml = p.constructionManageStaff ? staffSquareHtml(p.constructionManageStaff.trim(), colorMaps.supervisor.get(p.constructionManageStaff.trim())||"#999") : "";
     rows.push({
       label: [p.name||"(案件名未設定)", shortAddr, p.floorArea?`${p.floorArea}坪`:"", p.designStaff1, p.constructionManageStaff].filter(Boolean).join(" ｜ "),
-      cols: [p.name||"(案件名未設定)", shortAddr||"", p.floorArea?`${p.floorArea}坪`:"", p.designStaff1||"", p.constructionManageStaff||""],
+      cols: [escapeHtml(p.name||"(案件名未設定)"), escapeHtml(shortAddr||""), escapeHtml(p.floorArea?`${p.floorArea}坪`:""), designColHtml, supColHtml],
       jumpId: p.id,
       segments
     });
@@ -1463,6 +1466,7 @@ function renderSalesTable(list){
       <div><div class="k">完成時粗利率</div><div class="v">${s.fCount?rateBadgeHtml(s.fr):"—"}</div></div>
     </div>`;
   const sorted = list.slice().sort(kickoffOrderCompare);
+  const colorMaps = getStaffColorMaps();
   const rows = sorted.map(p=>{
     const cr = profitRate(p.contractAmount, p.contractCost);
     const fr = profitRate(p.completeAmount, p.completeCost);
@@ -1470,8 +1474,8 @@ function renderSalesTable(list){
     return `<tr data-jump="${p.id}" style="cursor:pointer;">
       <td>${num?`<span class="tl-num">${num}.</span> `:""}${escapeHtml(p.name)||"(案件名未設定)"}</td>
       <td>${escapeHtml(p.address)||"—"}</td>
-      <td>${escapeHtml(p.designStaff1)||"—"}</td>
-      <td>${escapeHtml(p.constructionManageStaff)||"—"}</td>
+      <td>${p.designStaff1?staffDotHtml(p.designStaff1.trim(), colorMaps.design.get(p.designStaff1.trim())||"#999"):"—"}</td>
+      <td>${p.constructionManageStaff?staffSquareHtml(p.constructionManageStaff.trim(), colorMaps.supervisor.get(p.constructionManageStaff.trim())||"#999"):"—"}</td>
       <td>${p.startDate?escapeHtml(p.startDate):p.startMonth?escapeHtml(p.startMonth):"—"}</td>
       <td>${escapeHtml(p.deliveryMonth)||"—"}</td>
       <td class="r">${fmtYen(p.contractAmount)}</td>
