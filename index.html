@@ -196,8 +196,10 @@
 
   .gantt-body-row{display:flex;}
   .gantt-labels{flex:0 0 190px;border-right:1px solid var(--line);max-height:450px;overflow-y:auto;overflow-x:hidden;}
-  .gantt-wrap.tall .gantt-labels{max-height:none;overflow-y:visible;flex-basis:420px;}
-  .gantt-wrap.tall .gantt-scroll{max-height:none;overflow-y:visible;}
+  .gantt-wrap.tall .gantt-labels{max-height:none!important;overflow-y:visible!important;flex-basis:420px;}
+  .gantt-wrap.tall .gantt-scroll{max-height:none!important;overflow-y:visible!important;}
+  .gantt-wrap.tall{overflow:visible;}
+  .gantt-wrap.tall .gantt-body-row{overflow:visible;}
   .gantt-wrap.tall .gantt-label-header{flex-basis:420px;}
   .gantt-wrap.tall .gantt-label-row{font-size:11px;}
   .label-cols{display:flex;width:100%;height:100%;align-items:center;}
