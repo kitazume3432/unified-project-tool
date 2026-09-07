@@ -1907,6 +1907,7 @@ function ensureStaffDatalist(){
   ensureFixedDatalist("methodList", ["在来工法","SE構法"]);
   ensureFixedDatalist("floorsList", ["平屋","2階建て","3階建て"]);
   ensureFixedDatalist("designStaffList", ["北爪俊之","星野武由","山﨑恵美","関彩香","島田亜美","宮田峻誠"]);
+  ensureFixedDatalist("applicationStaffList", ["細野静恵","宮田峻誠"]);
   ensureFixedDatalist("constructionStaffList", ["小林豊","高井貴信","小林克雄","大塚将太","井上玲央","齋綾司"]);
 
   // 設計事務所名: 固定の初期リスト + 既存データにある事務所名(データが空でも候補が出るように固定分を必ず含める)
@@ -1968,7 +1969,7 @@ function openProjectModal(id, defaultPeriod){
     let input;
     const comboList = {
       method:"methodList", floors:"floorsList",
-      designStaff1:"designStaffList", designStaff2:"designStaffList", applicationStaff:"designStaffList",
+      designStaff1:"designStaffList", designStaff2:"designStaffList", applicationStaff:"applicationStaffList",
       constructionManageStaff:"constructionStaffList"
     }[f.key];
     if(f.type==="select"){
