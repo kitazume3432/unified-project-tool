@@ -169,6 +169,10 @@
   .badge.done{background:var(--status-done);color:var(--white);}
   .badge.late{background:var(--danger);color:var(--white);}
   .badge.eco{background:var(--status-apply);color:var(--white);}
+  .staff-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:3px;vertical-align:middle;}
+  .staff-square{display:inline-block;width:8px;height:8px;margin-right:3px;vertical-align:middle;}
+  .staff-legend{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-muted);padding:8px 12px;background:var(--cream-dark);border-radius:var(--radius);margin-bottom:10px;}
+  .staff-legend-label{font-weight:700;color:var(--charcoal);margin-right:6px;}
   .project-card.is-done{opacity:.8;}
   .project-card.is-done .p-head{background:var(--cream-dark);}
   .p-head .p-actions{display:flex;gap:6px;align-items:center;flex-shrink:0;}
@@ -475,6 +479,9 @@
       <div class="field"><label>リポジトリ名</label><input type="text" id="setRepo" placeholder="kansan-data"></div>
       <div class="field"><label>ファイルパス</label><input type="text" id="setPath" placeholder="unified-project-data.json"></div>
       <div class="field"><label>Personal Access Token</label><input type="password" id="setToken" placeholder="github_pat_..."></div>
+      <div class="field" style="grid-column:1/-1;">
+        <label><input type="checkbox" id="setShowSales" style="width:auto;margin-right:6px;">売上表を表示する(お客様に画面をお見せする場合はオフのままにしてください)</label>
+      </div>
     </div>
     <div class="modal-sub" style="margin-top:18px;">データファイル(.json)から案件データを読み込み直す場合はこちら。現在のデータは上書きされます。</div>
     <div class="form-grid one">
@@ -609,7 +616,7 @@ function loadSettings(){
     const raw = localStorage.getItem(SETTINGS_KEY);
     if(raw) return JSON.parse(raw);
   }catch(e){}
-  return {owner:"kitazume3432", repo:"kansan-data", path:"unified-project-data.json", token:""};
+  return {owner:"kitazume3432", repo:"kansan-data", path:"unified-project-data.json", token:"", showSales:false};
 }
 function saveSettings(s){
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
@@ -1334,7 +1341,17 @@ function renderOverview(list, opts){
   timelineSorted.forEach((p,i)=>{ timelineNumberById[p.id] = i+1; });
   const addBtn = opts.showAdd===false ? "" : `<span style="flex:1"></span><button class="primary small" id="btnAddProject" data-default-period="${escapeHtml(opts.defaultPeriod||"")}">＋ 新規案件</button>`;
 
+  const colorMaps = getStaffColorMaps();
+  const designLegend = Array.from(colorMaps.design.entries()).map(([n,c])=>staffDotHtml(n,c)).join("　");
+  const supLegend = Array.from(colorMaps.supervisor.entries()).map(([n,c])=>staffSquareHtml(n,c)).join("　");
+  const staffLegendHtml = (designLegend||supLegend) ? `
+    <div class="staff-legend">
+      ${designLegend?`<div><span class="staff-legend-label">設計担当</span> ${designLegend}</div>`:""}
+      ${supLegend?`<div><span class="staff-legend-label">現場監督</span> ${supLegend}</div>`:""}
+    </div>` : "";
+
   let gantt = `
+    ${staffLegendHtml}
     <div class="section-label">
       <span class="num">01</span><span class="txt">案件タイムライン(着工順・着工/完成の記載がある案件)</span>
       <span class="count">${timelineSorted.length}件</span>
@@ -1383,6 +1400,9 @@ function allPeriods(){
 function renderPeriodView(period){
   const list = state.projects.filter(p=>p.period===period);
 
+  // 売上表の表示設定がオフの場合は、必ず申請工程表側に強制する
+  if(!settings.showSales && periodSubView==="table"){ periodSubView = "schedule"; }
+
   // 期が変わったら担当フィルターをリセット
   if(periodStaffFilterPeriod !== period){
     periodStaffFilter = "";
@@ -1406,7 +1426,7 @@ function renderPeriodView(period){
     </div>
     <div class="subview-tabs">
       <button class="sbtn ${periodSubView==='schedule'?'on':''}" data-subview="schedule">申請工程表</button>
-      <button class="sbtn ${periodSubView==='table'?'on':''}" data-subview="table">売上表</button>
+      ${settings.showSales?`<button class="sbtn ${periodSubView==='table'?'on':''}" data-subview="table">売上表</button>`:""}
     </div>
     <div class="subview-tabs" style="margin-top:6px;">
       <button class="sbtn ${periodStaffFilter===''?'on':''}" data-staff-filter="">全体</button>
@@ -1510,8 +1530,35 @@ function renderScheduleTable(sortedList){
     </div>`;
 }
 
+const STAFF_COLOR_PALETTE = ["#3E6E8E","#A8503C","#6E8F6E","#8C6E43","#7A5C9E","#B06A56","#4E7A5C","#9E6A3E"];
+function buildStaffColorMap(names){
+  const map = new Map();
+  Array.from(new Set(names)).sort((a,b)=>a.localeCompare(b,"ja")).forEach((name,i)=>{
+    map.set(name, STAFF_COLOR_PALETTE[i % STAFF_COLOR_PALETTE.length]);
+  });
+  return map;
+}
+function getStaffColorMaps(){
+  const designNames = state.projects.filter(p=>p.officeType!=="sei" && p.designStaff1).map(p=>p.designStaff1.trim());
+  const supNames = state.projects.filter(p=>p.constructionManageStaff).map(p=>p.constructionManageStaff.trim());
+  return { design: buildStaffColorMap(designNames), supervisor: buildStaffColorMap(supNames) };
+}
+function staffDotHtml(name, color){
+  return `<span class="staff-dot" style="background:${color};"></span>${escapeHtml(name)}`;
+}
+function staffSquareHtml(name, color){
+  return `<span class="staff-square" style="background:${color};"></span>${escapeHtml(name)}`;
+}
+
 function renderProjectMetaLines(p){
-  const roles = ROLE_FIELDS.filter(r=>p[r.key]).map(r=>`${r.label}: ${escapeHtml(p[r.key])}`).join(" ／ ");
+  const colorMaps = getStaffColorMaps();
+  const roleParts = [];
+  if(p.designStaff1) roleParts.push(`設計担当１: ${staffDotHtml(p.designStaff1.trim(), colorMaps.design.get(p.designStaff1.trim())||"#999")}`);
+  if(p.designStaff2) roleParts.push(`設計担当２: ${staffDotHtml(p.designStaff2.trim(), colorMaps.design.get(p.designStaff2.trim())||"#999")}`);
+  if(p.applicationStaff) roleParts.push(`申請担当: ${escapeHtml(p.applicationStaff)}`);
+  if(p.constructionManageStaff) roleParts.push(`施工管理担当: ${staffSquareHtml(p.constructionManageStaff.trim(), colorMaps.supervisor.get(p.constructionManageStaff.trim())||"#999")}`);
+  if(p.daiku) roleParts.push(`大工: ${escapeHtml(p.daiku)}`);
+  const roles = roleParts.join(" ／ ");
   const num = timelineNumberById[p.id];
   return `
     <div class="p-name">${num?`<span class="tl-num">${num}.</span> `:""}${escapeHtml(p.name)||"(案件名未設定)"} ${isProjectDone(p)?'<span class="badge done">完了</span>':''} ${isProjectLate(p)?'<span class="badge late">完成予定超過</span>':''} ${p.choki==="有"?'<span class="badge">長期優良</span>':p.choki==="省エネ適判"?'<span class="badge eco">省エネ適判</span>':''} ${p.officeType==="sei"?'<span class="badge office">設計事務所</span>':''} ${p.period?`<span class="badge period">${escapeHtml(p.period)}</span>`:''}</div>
@@ -1952,6 +1999,7 @@ function openSettingsModal(){
   document.getElementById("setRepo").value = settings.repo||"";
   document.getElementById("setPath").value = settings.path||"";
   document.getElementById("setToken").value = settings.token||"";
+  document.getElementById("setShowSales").checked = !!settings.showSales;
   document.getElementById("settingsModalBackdrop").classList.add("open");
 }
 function closeSettingsModal(){
@@ -1962,7 +2010,8 @@ function saveSettingsModal(){
     owner: document.getElementById("setOwner").value.trim(),
     repo: document.getElementById("setRepo").value.trim(),
     path: document.getElementById("setPath").value.trim() || "kotei-kanri-data.json",
-    token: document.getElementById("setToken").value.trim()
+    token: document.getElementById("setToken").value.trim(),
+    showSales: document.getElementById("setShowSales").checked
   };
   saveSettings(settings);
   closeSettingsModal();
