@@ -23,6 +23,7 @@
     --danger:#A8503C;
     --status-apply:#3E6E8E;
     --status-planned:#A9A296;
+    --num-font:"SF Mono",Consolas,"Yu Gothic",monospace;
     --radius:4px;
   }
   *{box-sizing:border-box;}
@@ -123,7 +124,7 @@
   .section-label:first-child{margin-top:0;}
   .section-label .num{font-size:12px;color:var(--wood-dark);font-weight:700;letter-spacing:.05em;}
   .section-label .txt{font-size:15px;font-weight:600;color:var(--charcoal);}
-  .section-label .count{font-size:12px;color:var(--text-muted);}
+  .section-label .count{font-size:12px;color:var(--text-muted);font-family:var(--num-font);}
 
   .empty-state{
     border:1px dashed var(--line);
@@ -154,7 +155,7 @@
   }
   .project-card .p-head:hover{background:var(--cream-dark);}
   .p-head .p-name{font-size:16px;font-weight:700;}
-  .tl-num{color:var(--wood-dark);font-weight:700;margin-right:2px;}
+  .tl-num{color:var(--wood-dark);font-weight:700;margin-right:2px;font-family:var(--num-font);}
   .p-head .p-meta{font-size:12px;color:var(--text-muted);margin-top:4px;display:flex;flex-wrap:wrap;gap:6px 12px;}
   .badge{
     display:inline-block;
@@ -195,8 +196,8 @@
 
   .gantt-body-row{display:flex;}
   .gantt-labels{flex:0 0 190px;border-right:1px solid var(--line);max-height:450px;overflow-y:auto;overflow-x:hidden;}
-  .gantt-wrap.tall .gantt-labels{max-height:850px;flex-basis:420px;}
-  .gantt-wrap.tall .gantt-scroll{max-height:850px;}
+  .gantt-wrap.tall .gantt-labels{max-height:none;overflow-y:visible;flex-basis:420px;}
+  .gantt-wrap.tall .gantt-scroll{max-height:none;overflow-y:visible;}
   .gantt-wrap.tall .gantt-label-header{flex-basis:420px;}
   .gantt-wrap.tall .gantt-label-row{font-size:11px;}
   .label-cols{display:flex;width:100%;height:100%;align-items:center;}
@@ -234,7 +235,7 @@
   .gantt-today-label{position:absolute;top:2px;font-size:10px;color:var(--danger);transform:translateX(2px);white-space:nowrap;}
 
   /* 着手・完了は「月/日」のみのテキスト入力(年は内部で保持) */
-  input.date-md-input{ width:56px; text-align:left; }
+  input.date-md-input{ width:56px; text-align:left; font-family:var(--num-font); }
   input.date-md-input::placeholder{ color:var(--text-muted); opacity:.5; }
   .p-body{padding:14px 18px 18px 18px;display:none;}
   .p-body.open{display:block;}
@@ -265,10 +266,10 @@
     border-radius:var(--radius);
   }
   .fin-grid .k{color:var(--text-muted);}
-  .fin-grid .v{font-weight:600;font-family:"SF Mono",Consolas,monospace;}
-  .rate-high{color:var(--status-done);font-weight:700;}
-  .rate-mid{color:var(--wood-dark);font-weight:700;}
-  .rate-low{color:var(--danger);font-weight:700;}
+  .fin-grid .v{font-weight:600;font-family:var(--num-font);}
+  .rate-high{color:var(--status-done);font-weight:700;font-family:var(--num-font);}
+  .rate-mid{color:var(--wood-dark);font-weight:700;font-family:var(--num-font);}
+  .rate-low{color:var(--danger);font-weight:700;font-family:var(--num-font);}
   .p-name .badge.period{background:var(--charcoal);color:var(--cream);}
   .p-name .badge.office{background:var(--status-review);color:var(--white);}
   .no-task-note{font-size:12px;color:var(--text-muted);padding:10px 0;}
@@ -283,7 +284,7 @@
   .summary-table td{padding:7px 10px;border-bottom:1px solid var(--cream-dark);vertical-align:middle;}
   .summary-table tr:last-child td{border-bottom:none;}
   .summary-table tr:hover td{background:var(--cream);}
-  .summary-table td.r{text-align:right;font-family:"SF Mono",Consolas,monospace;font-size:11.5px;}
+  .summary-table td.r{text-align:right;font-family:var(--num-font);font-size:11.5px;}
   .summary-total td{font-weight:700;background:var(--cream-dark);}
   .summary-note{font-size:11px;color:var(--text-muted);margin-top:.25rem;}
 
@@ -309,6 +310,15 @@
   table.task-table tr.overdue td:nth-child(6){color:var(--danger);font-weight:700;}
   input.overdue-input{color:var(--danger);font-weight:700;border-color:var(--danger);}
   .overdue-flag{color:var(--danger);font-weight:700;margin-right:4px;}
+  .done-toggle-row td{background:var(--cream-dark);color:var(--text-muted);font-size:12px;font-weight:600;padding:6px 10px;text-align:center;}
+  .done-toggle-row:hover td{background:var(--line);}
+  .scroll-top-btn{
+    position:fixed;right:20px;bottom:24px;z-index:80;
+    width:46px;height:46px;border-radius:50%;border:none;
+    background:var(--wood);color:var(--white);font-size:18px;
+    box-shadow:0 4px 12px rgba(0,0,0,.25);cursor:pointer;
+  }
+  .scroll-top-btn:hover{background:var(--wood-dark);}
   .subview-tabs{display:flex;gap:6px;margin:14px 0 4px 0;}
   .sbtn{padding:6px 14px;font-size:13px;border:1px solid var(--line);border-radius:var(--radius);cursor:pointer;background:var(--white);color:var(--text-muted);}
   .sbtn:hover{background:var(--cream-dark);}
@@ -425,6 +435,8 @@
 <main id="mainArea"></main>
 
 <footer class="app-footer">統合案件管理ツール — データは端末とkansan-dataリポジトリに保存されます</footer>
+
+<button id="btnScrollTop" class="scroll-top-btn" title="先頭へ戻る" style="display:none;">▲</button>
 
 <!-- 案件編集モーダル -->
 <div class="modal-backdrop" id="projectModalBackdrop">
@@ -1591,11 +1603,9 @@ function isOverdue(dateStr, status){
   return d < today;
 }
 
-function renderTaskTable(p, taskList){
-  const list = taskList || p.tasks;
-  const rows = list.map(t=>{
-    const overdue = isOverdue(t.complete, t.status);
-    return `
+function renderTaskRow(p, t){
+  const overdue = isOverdue(t.complete, t.status);
+  return `
     <tr class="${statusRowClass(t.status)} ${overdue?'overdue':''}" data-task="${t.id}" data-project="${p.id}">
       <td><input type="text" value="${escapeHtml(t.name)}" data-field="name" style="min-width:130px;"></td>
       <td><input type="text" value="${escapeHtml(t.assignee)}" data-field="assignee" list="staffList" style="width:90px;"></td>
@@ -1609,13 +1619,27 @@ function renderTaskTable(p, taskList){
       <td><input type="text" class="date-md-input ${overdue?'overdue-input':''}" value="${monthDayDisplay(t.complete)}" data-field="complete" data-full="${escapeHtml(t.complete)}" placeholder="月/日" title="${overdue?'完了予定日を過ぎています':''}"></td>
       <td class="task-row-actions">${overdue?'<span class="overdue-flag" title="期限切れ">⚠</span>':''}<button class="icon" data-del-task="${t.id}" data-project="${p.id}" title="削除">✕</button></td>
     </tr>`;
-  }).join("");
+}
+
+let expandedDoneTasks = new Set(); // 完了済みタスクを展開表示している案件IDの集合
+
+function renderTaskTable(p, taskList){
+  const list = taskList || p.tasks;
+  const active = list.filter(t=>t.status!=="完了");
+  const done = list.filter(t=>t.status==="完了");
+  const activeRows = active.map(t=>renderTaskRow(p,t)).join("");
+  const doneOpen = expandedDoneTasks.has(p.id);
+  const doneToggleRow = done.length===0 ? "" : `
+    <tr class="done-toggle-row" data-toggle-done-tasks="${p.id}" style="cursor:pointer;">
+      <td colspan="7">完了済みタスク ${done.length}件 ${doneOpen?"▲":"▼"}</td>
+    </tr>`;
+  const doneRows = doneOpen ? done.map(t=>renderTaskRow(p,t)).join("") : "";
   return `
   <table class="task-table">
     <thead><tr>
       <th>タスク</th><th>担当者</th><th>状況</th><th>備考</th><th>着手</th><th>完了</th><th></th>
     </tr></thead>
-    <tbody>${rows}</tbody>
+    <tbody>${activeRows}${doneToggleRow}${doneRows}</tbody>
   </table>`;
 }
 
@@ -1732,6 +1756,14 @@ function bindOverviewEvents(){
 }
 
 function bindTaskTableEditEvents(main){
+  main.querySelectorAll("[data-toggle-done-tasks]").forEach(row=>{
+    row.addEventListener("click", ()=>{
+      const id = row.dataset.toggleDoneTasks;
+      if(expandedDoneTasks.has(id)) expandedDoneTasks.delete(id);
+      else expandedDoneTasks.add(id);
+      renderAll();
+    });
+  });
   main.querySelectorAll("[data-del-task]").forEach(el=>{
     el.addEventListener("click",()=>{
       const p = findProject(el.dataset.project);
@@ -1799,7 +1831,7 @@ const PROJECT_FIELDS = [
   {key:"storageLocation", label:"資料保存場所", type:"text", full:true},
   {key:"method", label:"工法", type:"text"},
   {key:"floors", label:"階数", type:"text"},
-  {key:"choki", label:"長期優良住宅", type:"select", options:["有","無"]},
+  {key:"choki", label:"長期優良住宅", type:"select", options:["有","無","省エネ適判"]},
   {key:"designStaff1", label:"設計担当１", type:"text"},
   {key:"designStaff2", label:"設計担当２", type:"text"},
   {key:"applicationStaff", label:"申請担当", type:"text"},
@@ -1891,6 +1923,14 @@ function saveSettingsModal(){
 function init(){
   loadLocal();
   renderAll();
+
+  const scrollTopBtn = document.getElementById("btnScrollTop");
+  window.addEventListener("scroll", ()=>{
+    scrollTopBtn.style.display = window.scrollY > 300 ? "block" : "none";
+  });
+  scrollTopBtn.addEventListener("click", ()=>{
+    window.scrollTo({top:0, behavior:"smooth"});
+  });
 
   document.getElementById("btnPull").addEventListener("click", ()=>pullFromRemote(true));
   document.getElementById("btnPush").addEventListener("click", pushToRemote);
