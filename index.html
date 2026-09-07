@@ -1911,10 +1911,10 @@ function ensureStaffDatalist(){
   ensureFixedDatalist("designStaffList", ["北爪俊之","星野武由","山﨑恵美","関彩香","島田亜美","宮田峻誠"]);
   ensureFixedDatalist("constructionStaffList", ["小林豊","高井貴信","小林克雄","大塚将太","井上玲央","齋綾司"]);
 
-  // 設計事務所名: 既存データにある事務所名 + よく使うものを候補にする
-  const officeNames = Array.from(new Set(
-    state.projects.filter(p=>p.officeType==="sei" && p.designStaff1).map(p=>p.designStaff1.trim())
-  ));
+  // 設計事務所名: 固定の初期リスト + 既存データにある事務所名(データが空でも候補が出るように固定分を必ず含める)
+  const KNOWN_OFFICES = ["アトリエN","デザイン工房光","尾関設計","福島設計","磯貝設計","深山知子建築設計事務所"];
+  const officeNamesFromData = state.projects.filter(p=>p.officeType==="sei" && p.designStaff1).map(p=>p.designStaff1.trim());
+  const officeNames = Array.from(new Set([...KNOWN_OFFICES, ...officeNamesFromData]));
   ensureFixedDatalist("designOfficeList", officeNames);
 }
 
