@@ -1827,6 +1827,21 @@ function ensureStaffDatalist(){
     document.body.appendChild(dl);
   }
   dl.innerHTML = allPeopleNames().map(n=>`<option value="${escapeHtml(n)}">`).join("");
+
+  ensureFixedDatalist("methodList", ["在来工法","SE構法"]);
+  ensureFixedDatalist("floorsList", ["平屋","2階建て","3階建て"]);
+  ensureFixedDatalist("designStaffList", ["北爪俊之","星野武由","山﨑恵美","関彩香","島田亜美","宮田峻誠"]);
+  ensureFixedDatalist("constructionStaffList", ["小林豊","高井貴信","小林克雄","大塚将太","井上玲央","齋綾司"]);
+}
+
+function ensureFixedDatalist(id, options){
+  let dl = document.getElementById(id);
+  if(!dl){
+    dl = document.createElement("datalist");
+    dl.id = id;
+    document.body.appendChild(dl);
+  }
+  dl.innerHTML = options.map(o=>`<option value="${escapeHtml(o)}">`).join("");
 }
 
 /* ===================== 案件編集モーダル ===================== */
