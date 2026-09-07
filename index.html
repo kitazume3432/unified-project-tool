@@ -1914,6 +1914,7 @@ const PROJECT_FIELDS = [
   {key:"address", label:"建設地", type:"text", full:true},
   {key:"floorArea", label:"延床面積（坪）", type:"number"},
   {key:"period", label:"期", type:"select", options:["47期 2024.7～2025.6","48期 2025.7～2026.6","49期 2026.7～2027.6","50期 2027.7～2028.6"]},
+  {key:"officeType", label:"設計事務所案件(設計担当に事務所名を入れている場合はチェック)", type:"checkbox", trueValue:"sei", falseValue:"kan", full:true},
   {key:"constructionType", label:"工事種別", type:"text"},
   {key:"andpadId", label:"ANDPAD案件", type:"text"},
   {key:"storageLocation", label:"資料保存場所", type:"text", full:true},
@@ -1953,11 +1954,15 @@ function openProjectModal(id, defaultPeriod){
     }[f.key];
     if(f.type==="select"){
       input = `<select data-key="${f.key}">${f.options.map(o=>`<option value="${o}" ${p[f.key]===o?'selected':''}>${o}</option>`).join("")}</select>`;
+    }else if(f.type==="checkbox"){
+      input = `<input type="checkbox" data-key="${f.key}" data-checkbox-true="${f.trueValue}" data-checkbox-false="${f.falseValue}" style="width:auto;" ${p[f.key]===f.trueValue?'checked':''}>`;
     }else{
       input = `<input type="${f.type}" data-key="${f.key}" value="${val}" list="${comboList||''}">`;
     }
     const extra = (f.key==="contractCost") ? `<div class="k" id="modalContractRate" style="margin-top:4px;"></div>` : (f.key==="completeCost") ? `<div class="k" id="modalCompleteRate" style="margin-top:4px;"></div>` : "";
-    return `<div class="field" style="${f.full?'grid-column:1/-1;':''}"><label>${f.label}</label>${input}${extra}</div>`;
+    return f.type==="checkbox"
+      ? `<div class="field" style="${f.full?'grid-column:1/-1;':''}"><label style="display:flex;align-items:center;gap:6px;">${input}${f.label}</label></div>`
+      : `<div class="field" style="${f.full?'grid-column:1/-1;':''}"><label>${f.label}</label>${input}${extra}</div>`;
   }).join("");
   form.dataset.tempId = p.id;
   form._tempProject = p;
@@ -1985,7 +1990,13 @@ function closeProjectModal(){
 function saveProjectModal(){
   const form = document.getElementById("projectForm");
   const p = form._tempProject;
-  form.querySelectorAll("[data-key]").forEach(el=>{ p[el.dataset.key] = el.value; });
+  form.querySelectorAll("[data-key]").forEach(el=>{
+    if(el.type==="checkbox"){
+      p[el.dataset.key] = el.checked ? el.dataset.checkboxTrue : el.dataset.checkboxFalse;
+    }else{
+      p[el.dataset.key] = el.value;
+    }
+  });
   if(!editingProjectId){
     state.projects.push(p);
   }else{
