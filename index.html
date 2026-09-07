@@ -168,6 +168,7 @@
   }
   .badge.done{background:var(--status-done);color:var(--white);}
   .badge.late{background:var(--danger);color:var(--white);}
+  .badge.eco{background:var(--status-apply);color:var(--white);}
   .project-card.is-done{opacity:.8;}
   .project-card.is-done .p-head{background:var(--cream-dark);}
   .p-head .p-actions{display:flex;gap:6px;align-items:center;flex-shrink:0;}
@@ -764,7 +765,7 @@ function newProject(){
   return {
     id: uid(),
     name:"", address:"", floorArea:"", constructionType:"新築工事", andpadId:"", storageLocation:"",
-    method:"在来工法", floors:"平屋", choki:"有", startDate:"",
+    method:"", floors:"", choki:"有", startDate:"",
     designStaff1:"", designStaff2:"", applicationStaff:"", constructionManageStaff:"", daiku:"",
     officeType:"kan", period:"", startMonth:"", deliveryMonth:"", subsidy:"",
     contractAmount:0, contractCost:0, completeAmount:0, completeCost:0, note:"",
@@ -1513,7 +1514,7 @@ function renderProjectMetaLines(p){
   const roles = ROLE_FIELDS.filter(r=>p[r.key]).map(r=>`${r.label}: ${escapeHtml(p[r.key])}`).join(" ／ ");
   const num = timelineNumberById[p.id];
   return `
-    <div class="p-name">${num?`<span class="tl-num">${num}.</span> `:""}${escapeHtml(p.name)||"(案件名未設定)"} ${isProjectDone(p)?'<span class="badge done">完了</span>':''} ${isProjectLate(p)?'<span class="badge late">完成予定超過</span>':''} ${p.choki==="有"?'<span class="badge">長期優良</span>':''} ${p.officeType==="sei"?'<span class="badge office">設計事務所</span>':''} ${p.period?`<span class="badge period">${escapeHtml(p.period)}</span>`:''}</div>
+    <div class="p-name">${num?`<span class="tl-num">${num}.</span> `:""}${escapeHtml(p.name)||"(案件名未設定)"} ${isProjectDone(p)?'<span class="badge done">完了</span>':''} ${isProjectLate(p)?'<span class="badge late">完成予定超過</span>':''} ${p.choki==="有"?'<span class="badge">長期優良</span>':p.choki==="省エネ適判"?'<span class="badge eco">省エネ適判</span>':''} ${p.officeType==="sei"?'<span class="badge office">設計事務所</span>':''} ${p.period?`<span class="badge period">${escapeHtml(p.period)}</span>`:''}</div>
     <div class="p-meta">
       <span>${escapeHtml(p.address)||"建設地未設定"}</span>
       <span>${escapeHtml(p.constructionType)}${p.method?" / "+escapeHtml(p.method):""}${p.floors?" / "+escapeHtml(p.floors):""}</span>
