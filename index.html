@@ -1331,7 +1331,7 @@ function renderOverview(list, opts){
   });
   timelineNumberById = {};
   timelineSorted.forEach((p,i)=>{ timelineNumberById[p.id] = i+1; });
-  const addBtn = opts.showAdd===false ? "" : `<span style="flex:1"></span><button class="primary small" id="btnAddProject">＋ 新規案件</button>`;
+  const addBtn = opts.showAdd===false ? "" : `<span style="flex:1"></span><button class="primary small" id="btnAddProject" data-default-period="${escapeHtml(opts.defaultPeriod||"")}">＋ 新規案件</button>`;
 
   let gantt = `
     <div class="section-label">
@@ -1412,7 +1412,7 @@ function renderPeriodView(period){
       ${staffNames.map(([norm,display])=>`<button class="sbtn ${periodStaffFilter===norm?'on':''}" data-staff-filter="${escapeHtml(norm)}">${escapeHtml(display)}</button>`).join("")}
     </div>`;
   updateTimelineNumbering(filteredList);
-  const body = periodSubView==="table" ? renderSalesTable(filteredList) : renderOverview(filteredList, {showAdd:false});
+  const body = periodSubView==="table" ? renderSalesTable(filteredList) : renderOverview(filteredList, {showAdd:true, defaultPeriod:period});
   return label + body;
 }
 
@@ -1731,7 +1731,7 @@ function bindOverviewEvents(){
     tr.addEventListener("click", ()=>jumpToProject(tr.dataset.jump));
   });
   const addBtn = document.getElementById("btnAddProject");
-  if(addBtn) addBtn.addEventListener("click", ()=>openProjectModal(null));
+  if(addBtn) addBtn.addEventListener("click", ()=>openProjectModal(null, addBtn.dataset.defaultPeriod));
 
   const doneToggle = main.querySelector("[data-toggle-done]");
   if(doneToggle) doneToggle.addEventListener("click", ()=>{
@@ -1876,9 +1876,10 @@ const PROJECT_FIELDS = [
 ];
 let editingProjectId = null;
 
-function openProjectModal(id){
+function openProjectModal(id, defaultPeriod){
   editingProjectId = id;
   const p = id ? findProject(id) : newProject();
+  if(!id && defaultPeriod) p.period = defaultPeriod;
   document.getElementById("projectModalTitle").textContent = id ? "案件を編集" : "案件を追加";
   document.getElementById("btnDeleteProject").style.display = id ? "inline-block" : "none";
   const form = document.getElementById("projectForm");
