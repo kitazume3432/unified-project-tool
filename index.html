@@ -1248,29 +1248,20 @@ function renderSummaryView(){
   const all = state.projects;
   const withFin = all.filter(p=>(Number(p.contractAmount)||0) > 0);
 
-  function groupBy(list, keyFn){
-    const map = {};
-    list.forEach(p=>{
-      const k = keyFn(p);
-      if(!k) return;
-      if(!map[k]) map[k] = [];
-      map[k].push(p);
-    });
-    return map;
+  function normName(name){
+    return name ? name.trim().replace(/[\s\u3000]/g,"") : name;
   }
 
-  function tableRows(map){
-    return Object.keys(map).sort((a,b)=>map[b].length-map[a].length).map(name=>{
-      const s = summarizeProjects(map[name]);
-      return `<tr>
-        <td>${escapeHtml(name)}</td>
-        <td class="r">${s.count}件</td>
-        <td class="r">${fmtYen(s.ca)}</td>
-        <td class="r">${rateBadgeHtml(s.cr)}</td>
-        <td class="r">${s.fCount?fmtYen(s.fa):"—"}</td>
-        <td class="r">${s.fCount?rateBadgeHtml(s.fr):"—"}</td>
-      </tr>`;
-    }).join("");
+  function groupBy(list, keyFn){
+    const map = {}; // 正規化キー -> {display, items}
+    list.forEach(p=>{
+      const raw = keyFn(p);
+      if(!raw) return;
+      const key = normName(raw);
+      if(!map[key]) map[key] = {display: raw.trim(), items: []};
+      map[key].items.push(p);
+    });
+    return map;
   }
 
   function totalRow(list){
@@ -1285,33 +1276,27 @@ function renderSummaryView(){
     </tr>`;
   }
 
-  const byPeriod = groupBy(withFin, p=>p.period);
-  const byDesigner = groupBy(withFin.filter(p=>p.officeType!=="sei"), p=>p.designStaff1);
-  const bySupervisor = groupBy(withFin, p=>p.constructionManageStaff);
+  function roleRows(map){
+    return Object.keys(map).sort((a,b)=>map[b].items.length-map[a].items.length).map(key=>{
+      const {display, items} = map[key];
+      const s = summarizeProjects(items);
+      return `<tr>
+        <td>${escapeHtml(display)}</td>
+        <td class="r">${s.count}件</td>
+        <td class="r">${fmtYen(s.ca)}</td>
+        <td class="r">${rateBadgeHtml(s.cr)}</td>
+        <td class="r">${s.fCount?fmtYen(s.fa):"—"}</td>
+        <td class="r">${s.fCount?rateBadgeHtml(s.fr):"—"}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  const byPeriodRaw = {}; // 期文字列 -> 案件リスト(素の配列。期は空白違いが無いのでnormName不要)
+  withFin.forEach(p=>{ if(!p.period) return; (byPeriodRaw[p.period]=byPeriodRaw[p.period]||[]).push(p); });
   const byOffice = groupBy(withFin.filter(p=>p.officeType==="sei"), p=>p.designStaff1);
 
-  function section(title, map, list, iconNote, sortByPeriodOrder){
+  function officeSection(title, map, list, iconNote){
     if(Object.keys(map).length===0) return "";
-    let rows;
-    if(sortByPeriodOrder){
-      rows = Object.keys(map).sort((a,b)=>{
-        const na = parseInt(a.match(/\d+/)?.[0]||"0",10);
-        const nb = parseInt(b.match(/\d+/)?.[0]||"0",10);
-        return na-nb;
-      }).map(name=>{
-        const s = summarizeProjects(map[name]);
-        return `<tr>
-          <td>${escapeHtml(name)}</td>
-          <td class="r">${s.count}件</td>
-          <td class="r">${fmtYen(s.ca)}</td>
-          <td class="r">${rateBadgeHtml(s.cr)}</td>
-          <td class="r">${s.fCount?fmtYen(s.fa):"—"}</td>
-          <td class="r">${s.fCount?rateBadgeHtml(s.fr):"—"}</td>
-        </tr>`;
-      }).join("");
-    }else{
-      rows = tableRows(map);
-    }
     return `
     <div class="summary-section">
       <div class="summary-title">${title}</div>
@@ -1321,10 +1306,37 @@ function renderSummaryView(){
             <th>${iconNote}</th><th class="r">件数</th><th class="r">契約金額（税抜）</th><th class="r">契約時粗利率</th>
             <th class="r">完成金額（税抜）</th><th class="r">完成時粗利率</th>
           </tr></thead>
-          <tbody>${rows}${totalRow(list)}</tbody>
+          <tbody>${roleRows(map)}${totalRow(list)}</tbody>
         </table>
       </div>
     </div>`;
+  }
+
+  function periodByRoleSection(roleLabel, keyFn, filterFn){
+    const periods = Object.keys(byPeriodRaw).sort((a,b)=>{
+      const na = parseInt(a.match(/\d+/)?.[0]||"0",10);
+      const nb = parseInt(b.match(/\d+/)?.[0]||"0",10);
+      return na-nb;
+    });
+    if(periods.length===0) return "";
+    return periods.map(period=>{
+      const periodList = byPeriodRaw[period].filter(filterFn);
+      const map = groupBy(periodList, keyFn);
+      if(Object.keys(map).length===0) return "";
+      return `
+      <div class="summary-section">
+        <div class="summary-title">${escapeHtml(period)}</div>
+        <div class="summary-wrap">
+          <table class="summary-table">
+            <thead><tr>
+              <th>${roleLabel}</th><th class="r">件数</th><th class="r">契約金額（税抜）</th><th class="r">契約時粗利率</th>
+              <th class="r">完成金額（税抜）</th><th class="r">完成時粗利率</th>
+            </tr></thead>
+            <tbody>${roleRows(map)}${totalRow(periodList)}</tbody>
+          </table>
+        </div>
+      </div>`;
+    }).join("");
   }
 
   return `
@@ -1332,10 +1344,12 @@ function renderSummaryView(){
       <span class="num">集計</span><span class="txt">期別・設計担当・現場監督・設計事務所別 粗利集計</span>
       <span class="count">全${all.length}件（金額登録あり ${withFin.length}件）</span>
     </div>
-    ${section("期別集計", byPeriod, withFin, "期", true)}
-    ${section("設計担当別集計", byDesigner, withFin.filter(p=>p.officeType!=="sei"), "設計担当")}
-    ${section("現場監督別集計", bySupervisor, withFin, "現場監督")}
-    ${section("設計事務所別集計", byOffice, withFin.filter(p=>p.officeType==="sei"), "設計事務所")}
+    <div class="summary-title" style="font-size:15px;margin-top:0;">期別集計(設計担当別)</div>
+    ${periodByRoleSection("設計担当", p=>p.designStaff1, p=>p.officeType!=="sei")}
+    <div class="summary-title" style="font-size:15px;">期別集計(現場監督別)</div>
+    ${periodByRoleSection("現場監督", p=>p.constructionManageStaff, ()=>true)}
+    <div class="summary-title" style="font-size:15px;">期別集計(設計事務所別)</div>
+    ${periodByRoleSection("設計事務所", p=>p.designStaff1, p=>p.officeType==="sei")}
     <div class="summary-note">※ 完成時粗利率は完成金額が登録されている案件のみ対象。金額はすべて税抜表示。</div>
   `;
 }
