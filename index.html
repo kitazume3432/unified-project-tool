@@ -317,6 +317,10 @@
   .overdue-flag{color:var(--danger);font-weight:700;margin-right:4px;}
   .done-toggle-row td{background:var(--cream-dark);color:var(--text-muted);font-size:12px;font-weight:600;padding:6px 10px;text-align:center;}
   .done-toggle-row:hover td{background:var(--line);}
+  .drag-handle-cell{width:20px;padding:0 2px !important;text-align:center;}
+  .drag-handle{cursor:grab;color:var(--text-muted);font-size:14px;user-select:none;}
+  .drag-handle:active{cursor:grabbing;}
+  table.task-table tr.drag-over td{border-top:2px solid var(--wood-dark);}
   .scroll-top-btn{
     position:fixed;right:20px;bottom:24px;z-index:80;
     width:46px;height:46px;border-radius:50%;border:none;
@@ -1680,6 +1684,7 @@ function renderTaskRow(p, t){
   const overdue = isOverdue(t.complete, t.status);
   return `
     <tr class="${statusRowClass(t.status)} ${overdue?'overdue':''}" data-task="${t.id}" data-project="${p.id}">
+      <td class="drag-handle-cell"><span class="drag-handle" draggable="true" data-drag-task="${t.id}" data-drag-project="${p.id}" title="ドラッグして並び替え">⠿</span></td>
       <td><input type="text" value="${escapeHtml(t.name)}" data-field="name" style="min-width:130px;"></td>
       <td><input type="text" value="${escapeHtml(t.assignee)}" data-field="assignee" list="staffList" style="width:90px;"></td>
       <td>
@@ -1704,13 +1709,13 @@ function renderTaskTable(p, taskList){
   const doneOpen = expandedDoneTasks.has(p.id);
   const doneToggleRow = done.length===0 ? "" : `
     <tr class="done-toggle-row" data-toggle-done-tasks="${p.id}" style="cursor:pointer;">
-      <td colspan="7">完了済みタスク ${done.length}件 ${doneOpen?"▲":"▼"}</td>
+      <td colspan="8">完了済みタスク ${done.length}件 ${doneOpen?"▲":"▼"}</td>
     </tr>`;
   const doneRows = doneOpen ? done.map(t=>renderTaskRow(p,t)).join("") : "";
   return `
   <table class="task-table">
     <thead><tr>
-      <th>タスク</th><th>担当者</th><th>状況</th><th>備考</th><th>着手</th><th>完了</th><th></th>
+      <th></th><th>タスク</th><th>担当者</th><th>状況</th><th>備考</th><th>着手</th><th>完了</th><th></th>
     </tr></thead>
     <tbody>${activeRows}${doneToggleRow}${doneRows}</tbody>
   </table>`;
@@ -1842,6 +1847,40 @@ function bindOverviewEvents(){
 }
 
 function bindTaskTableEditEvents(main){
+  // タスク行のドラッグ&ドロップ並び替え
+  let draggingTaskId = null;
+  main.querySelectorAll("[data-drag-task]").forEach(handle=>{
+    handle.addEventListener("dragstart",(e)=>{
+      draggingTaskId = handle.dataset.dragTask;
+      e.dataTransfer.effectAllowed = "move";
+    });
+  });
+  main.querySelectorAll("table.task-table tr[data-task]").forEach(row=>{
+    row.addEventListener("dragover",(e)=>{
+      if(!draggingTaskId || row.dataset.task===draggingTaskId) return;
+      e.preventDefault();
+      row.classList.add("drag-over");
+    });
+    row.addEventListener("dragleave",()=>{ row.classList.remove("drag-over"); });
+    row.addEventListener("drop",(e)=>{
+      e.preventDefault();
+      row.classList.remove("drag-over");
+      const targetTaskId = row.dataset.task;
+      const projectId = row.dataset.project;
+      if(!draggingTaskId || draggingTaskId===targetTaskId) return;
+      const p = findProject(projectId);
+      if(!p) return;
+      const fromIdx = p.tasks.findIndex(t=>t.id===draggingTaskId);
+      const toIdx = p.tasks.findIndex(t=>t.id===targetTaskId);
+      if(fromIdx===-1 || toIdx===-1) return;
+      const [moved] = p.tasks.splice(fromIdx,1);
+      p.tasks.splice(p.tasks.findIndex(t=>t.id===targetTaskId), 0, moved);
+      draggingTaskId = null;
+      markDirty();
+      renderAll();
+    });
+  });
+
   main.querySelectorAll("[data-toggle-done-tasks]").forEach(row=>{
     row.addEventListener("click", ()=>{
       const id = row.dataset.toggleDoneTasks;
