@@ -115,6 +115,23 @@
     gap:12px;
   }
   .banner button{background:var(--white);color:var(--charcoal);border:none;}
+  .header-banner{
+    flex-basis:100%;
+    background:var(--status-review);
+    color:var(--white);
+    padding:8px 14px;
+    border-radius:var(--radius);
+    margin-top:8px;
+    font-size:13px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+  }
+  .header-banner button{
+    background:var(--white);color:var(--status-review);border:none;
+    padding:4px 12px;border-radius:var(--radius);cursor:pointer;font-weight:600;
+  }
 
   .section-label{
     display:flex;
@@ -437,6 +454,7 @@
     <button class="primary small" id="btnPush">保存して同期</button>
     <button class="icon" id="btnSettings" title="設定">⚙</button>
   </div>
+  <div id="remoteUpdateBanner" class="header-banner" style="display:none;"></div>
 </header>
 
 <nav class="tabs" id="tabBar"></nav>
@@ -1660,7 +1678,6 @@ function buildGanttRowsForTaskList(tasks){
       rows.push({label:t.name, taskId:t.id, segments:[{startDate:parseYMD(t.complete), endDate:null, color, title:`${t.name}(${t.status}) 完了:${t.complete}`, milestone:true}]});
     }
   });
-  rows.sort((a,b)=>a.segments[0].startDate-b.segments[0].startDate);
   return rows;
 }
 
@@ -1686,7 +1703,7 @@ function renderTaskRow(p, t){
     <tr class="${statusRowClass(t.status)} ${overdue?'overdue':''}" data-task="${t.id}" data-project="${p.id}">
       <td class="drag-handle-cell"><span class="drag-handle" draggable="true" data-drag-task="${t.id}" data-drag-project="${p.id}" title="ドラッグして並び替え">⠿</span></td>
       <td><input type="text" value="${escapeHtml(t.name)}" data-field="name" style="min-width:130px;"></td>
-      <td><input type="text" value="${escapeHtml(t.assignee)}" data-field="assignee" list="staffList" style="width:90px;"></td>
+      <td><input type="text" value="${escapeHtml(t.assignee)}" data-field="assignee" list="taskAssigneeList" style="width:90px;"></td>
       <td>
         <select data-field="status">
           ${(STATUS_OPTIONS.includes(t.status)||!t.status ? STATUS_OPTIONS : [t.status, ...STATUS_OPTIONS]).map(s=>`<option value="${escapeHtml(s)}" ${t.status===s?'selected':''}>${escapeHtml(s)}</option>`).join("")}
@@ -1948,6 +1965,7 @@ function ensureStaffDatalist(){
   ensureFixedDatalist("designStaffList", ["北爪俊之","星野武由","山﨑恵美","関彩香","島田亜美","宮田峻誠"]);
   ensureFixedDatalist("applicationStaffList", ["細野静恵","宮田峻誠"]);
   ensureFixedDatalist("constructionStaffList", ["小林豊","高井貴信","小林克雄","大塚将太","井上玲央","齋綾司"]);
+  ensureFixedDatalist("taskAssigneeList", ["北爪俊之","星野武由","細野静恵","山﨑恵美","島田亜美","宮田峻誠","関彩香","髙橋涼子","関敏孝"]);
 
   // 設計事務所名: 固定の初期リスト + 既存データにある事務所名(データが空でも候補が出るように固定分を必ず含める)
   const KNOWN_OFFICES = ["アトリエN","デザイン工房光","尾関設計","福島設計","磯貝設計","深山知子建築設計事務所"];
@@ -2182,17 +2200,13 @@ function init(){
 }
 
 function showRemoteUpdateBanner(){
-  if(document.getElementById("remoteUpdateBanner")) return;
-  const main = document.getElementById("mainArea");
-  const div = document.createElement("div");
-  div.className = "banner";
-  div.id = "remoteUpdateBanner";
+  const div = document.getElementById("remoteUpdateBanner");
+  if(!div || div.style.display==="flex") return;
+  div.style.display = "flex";
   div.innerHTML = `<span>他のメンバーが更新しました。最新データを取得しますか？</span><button id="btnApplyRemote">取得する</button>`;
-  main.prepend(div);
   document.getElementById("btnApplyRemote").addEventListener("click", async ()=>{
     await pullFromRemote(false);
-    const b = document.getElementById("remoteUpdateBanner");
-    if(b) b.remove();
+    div.style.display = "none";
   });
 }
 
