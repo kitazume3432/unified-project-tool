@@ -160,6 +160,7 @@
     border-radius:var(--radius);
     margin-bottom:18px;
     overflow:hidden;
+    scroll-margin-top:100px;
   }
   .project-card .p-head{
     padding:14px 18px;
@@ -189,7 +190,15 @@
   .badge.eco{background:var(--status-apply);color:var(--white);}
   .staff-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:3px;vertical-align:middle;}
   .staff-square{display:inline-block;width:8px;height:8px;margin-right:3px;vertical-align:middle;}
-  .mark-icon{font-size:13px;margin-left:1px;vertical-align:middle;}
+  .mark-icon{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:16px;height:16px;border-radius:50%;
+    font-size:10px;font-weight:700;color:var(--white);
+    margin-left:2px;vertical-align:middle;
+  }
+  .mark-kengaku{background:#C79A3C;}
+  .mark-photo{background:var(--status-apply);}
+  .mark-video{background:#7A5C9E;}
   .staff-legend{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-muted);padding:8px 12px;background:var(--cream-dark);border-radius:var(--radius);margin-bottom:10px;}
   .staff-legend-label{font-weight:700;color:var(--charcoal);margin-right:6px;}
   .project-card.is-done{opacity:.8;}
@@ -1603,9 +1612,9 @@ function staffSquareHtml(name, color){
 
 function markIconsHtml(p){
   let marks = "";
-  if(p.kengaku) marks += `<span class="mark-icon" title="見学会">★</span>`;
-  if(p.photoShoot) marks += `<span class="mark-icon" title="写真撮影">📷</span>`;
-  if(p.videoShoot) marks += `<span class="mark-icon" title="動画撮影">🎥</span>`;
+  if(p.kengaku) marks += `<span class="mark-icon mark-kengaku" title="見学会">見</span>`;
+  if(p.photoShoot) marks += `<span class="mark-icon mark-photo" title="写真撮影">写</span>`;
+  if(p.videoShoot) marks += `<span class="mark-icon mark-video" title="動画撮影">動</span>`;
   return marks;
 }
 
