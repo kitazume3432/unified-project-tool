@@ -189,6 +189,7 @@
   .badge.eco{background:var(--status-apply);color:var(--white);}
   .staff-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:3px;vertical-align:middle;}
   .staff-square{display:inline-block;width:8px;height:8px;margin-right:3px;vertical-align:middle;}
+  .mark-icon{font-size:13px;margin-left:4px;vertical-align:middle;}
   .staff-legend{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-muted);padding:8px 12px;background:var(--cream-dark);border-radius:var(--radius);margin-bottom:10px;}
   .staff-legend-label{font-weight:700;color:var(--charcoal);margin-right:6px;}
   .project-card.is-done{opacity:.8;}
@@ -797,6 +798,7 @@ function newProject(){
     method:"", floors:"", choki:"有", startDate:"",
     designStaff1:"", designStaff2:"", applicationStaff:"", constructionManageStaff:"", daiku:"",
     officeType:"kan", period:"", startMonth:"", deliveryMonth:"", subsidy:"",
+    kengaku:"", photoShoot:"", videoShoot:"",
     contractAmount:0, contractCost:0, completeAmount:0, completeCost:0, note:"",
     projectStatus:"進行中",
     sortOrder: Date.now(),
@@ -1108,7 +1110,7 @@ function buildProjectGanttRows(projectList){
     const supColHtml = p.constructionManageStaff ? staffSquareHtml(p.constructionManageStaff.trim(), colorMaps.supervisor.get(p.constructionManageStaff.trim())||"#999") : "";
     rows.push({
       label: [p.name||"(案件名未設定)", shortAddr, p.floorArea?`${p.floorArea}坪`:"", p.designStaff1, p.constructionManageStaff].filter(Boolean).join(" ｜ "),
-      cols: [escapeHtml(p.name||"(案件名未設定)"), escapeHtml(shortAddr||""), escapeHtml(p.floorArea?`${p.floorArea}坪`:""), designColHtml, supColHtml],
+      cols: [escapeHtml(p.name||"(案件名未設定)")+markIconsHtml(p), escapeHtml(shortAddr||""), escapeHtml(p.floorArea?`${p.floorArea}坪`:""), designColHtml, supColHtml],
       jumpId: p.id,
       segments
     });
@@ -1516,7 +1518,7 @@ function renderSalesTable(list){
     const fr = profitRate(p.completeAmount, p.completeCost);
     const num = timelineNumberById[p.id];
     return `<tr data-jump="${p.id}" style="cursor:pointer;">
-      <td>${num?`<span class="tl-num">${num}.</span> `:""}${escapeHtml(p.name)||"(案件名未設定)"}</td>
+      <td>${num?`<span class="tl-num">${num}.</span> `:""}${escapeHtml(p.name)||"(案件名未設定)"}${markIconsHtml(p)}</td>
       <td>${escapeHtml(p.address)||"—"}</td>
       <td>${p.designStaff1?staffDotHtml(p.designStaff1.trim(), colorMaps.design.get(p.designStaff1.trim())||"#999"):"—"}</td>
       <td>${p.constructionManageStaff?staffSquareHtml(p.constructionManageStaff.trim(), colorMaps.supervisor.get(p.constructionManageStaff.trim())||"#999"):"—"}</td>
@@ -1598,6 +1600,14 @@ function staffSquareHtml(name, color){
   return `<span class="staff-square" style="background:${color};"></span>${escapeHtml(name)}`;
 }
 
+function markIconsHtml(p){
+  let marks = "";
+  if(p.kengaku) marks += `<span class="mark-icon" title="見学会">★</span>`;
+  if(p.photoShoot) marks += `<span class="mark-icon" title="写真撮影">📷</span>`;
+  if(p.videoShoot) marks += `<span class="mark-icon" title="動画撮影">🎥</span>`;
+  return marks;
+}
+
 function renderProjectMetaLines(p){
   const colorMaps = getStaffColorMaps();
   const roleParts = [];
@@ -1609,7 +1619,7 @@ function renderProjectMetaLines(p){
   const roles = roleParts.join(" ／ ");
   const num = timelineNumberById[p.id];
   return `
-    <div class="p-name">${num?`<span class="tl-num">${num}.</span> `:""}${escapeHtml(p.name)||"(案件名未設定)"} ${isProjectDone(p)?'<span class="badge done">完了</span>':''} ${isProjectLate(p)?'<span class="badge late">完成予定超過</span>':''} ${p.choki==="有"?'<span class="badge">長期優良</span>':p.choki==="省エネ適判"?'<span class="badge eco">省エネ適判</span>':''} ${p.officeType==="sei"?'<span class="badge office">設計事務所</span>':''} ${p.period?`<span class="badge period">${escapeHtml(p.period)}</span>`:''}</div>
+    <div class="p-name">${num?`<span class="tl-num">${num}.</span> `:""}${escapeHtml(p.name)||"(案件名未設定)"}${markIconsHtml(p)} ${isProjectDone(p)?'<span class="badge done">完了</span>':''} ${isProjectLate(p)?'<span class="badge late">完成予定超過</span>':''} ${p.choki==="有"?'<span class="badge">長期優良</span>':p.choki==="省エネ適判"?'<span class="badge eco">省エネ適判</span>':''} ${p.officeType==="sei"?'<span class="badge office">設計事務所</span>':''} ${p.period?`<span class="badge period">${escapeHtml(p.period)}</span>`:''}</div>
     <div class="p-meta">
       <span>${escapeHtml(p.address)||"建設地未設定"}</span>
       <span>${escapeHtml(p.constructionType)}${p.method?" / "+escapeHtml(p.method):""}${p.floors?" / "+escapeHtml(p.floors):""}</span>
@@ -2006,6 +2016,9 @@ const PROJECT_FIELDS = [
   {key:"floorArea", label:"延床面積（坪）", type:"number"},
   {key:"period", label:"期", type:"select", options:["47期 2024.7～2025.6","48期 2025.7～2026.6","49期 2026.7～2027.6","50期 2027.7～2028.6"]},
   {key:"officeType", label:"設計事務所案件(設計担当に事務所名を入れている場合はチェック)", type:"checkbox", trueValue:"sei", falseValue:"kan", full:true},
+  {key:"kengaku", label:"見学会", type:"checkbox", trueValue:"yes", falseValue:""},
+  {key:"photoShoot", label:"写真撮影", type:"checkbox", trueValue:"yes", falseValue:""},
+  {key:"videoShoot", label:"動画撮影", type:"checkbox", trueValue:"yes", falseValue:""},
   {key:"constructionType", label:"工事種別", type:"text"},
   {key:"andpadId", label:"ANDPAD案件", type:"text"},
   {key:"storageLocation", label:"資料保存場所", type:"text", full:true},
