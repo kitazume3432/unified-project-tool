@@ -189,7 +189,7 @@
   .badge.eco{background:var(--status-apply);color:var(--white);}
   .staff-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:3px;vertical-align:middle;}
   .staff-square{display:inline-block;width:8px;height:8px;margin-right:3px;vertical-align:middle;}
-  .mark-icon{font-size:13px;margin-left:4px;vertical-align:middle;}
+  .mark-icon{font-size:13px;margin-left:1px;vertical-align:middle;}
   .staff-legend{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-muted);padding:8px 12px;background:var(--cream-dark);border-radius:var(--radius);margin-bottom:10px;}
   .staff-legend-label{font-weight:700;color:var(--charcoal);margin-right:6px;}
   .project-card.is-done{opacity:.8;}
@@ -220,8 +220,8 @@
 
   .gantt-body-row{display:flex;}
   .gantt-labels{flex:0 0 190px;border-right:1px solid var(--line);overflow-y:visible;overflow-x:hidden;}
-  .gantt-wrap.tall .gantt-labels{flex-basis:465px;}
-  .gantt-wrap.tall .gantt-label-header{flex-basis:465px;}
+  .gantt-wrap.tall .gantt-labels{flex-basis:485px;}
+  .gantt-wrap.tall .gantt-label-header{flex-basis:485px;}
   .gantt-wrap.tall .gantt-label-row{font-size:11px;}
   .label-cols{display:flex;width:100%;height:100%;align-items:center;}
   .label-cols .lc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:6px;flex-shrink:0;}
@@ -1400,7 +1400,7 @@ function renderOverview(list, opts){
     ${projectPhaseLegendHtml()}
     ${renderGanttHtml(numberGanttRows(buildProjectGanttRows(timelineSorted)), 5, {pruneOld:false, tall:true, labelColumns:[
       {title:"邸名", width:130},
-      {title:"印", width:55},
+      {title:"印", width:75},
       {title:"建設地", width:90},
       {title:"延床面積", width:50},
       {title:"設計担当", width:70},
