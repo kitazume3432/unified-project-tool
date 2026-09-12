@@ -757,6 +757,22 @@ async function pullFromRemote(showAlertIfNone){
   }
 }
 
+function mergeProjectsByUpdatedAt(localProjects, remoteProjects){
+  const remoteMap = new Map(remoteProjects.map(p=>[p.id,p]));
+  const localMap = new Map(localProjects.map(p=>[p.id,p]));
+  const allIds = new Set([...remoteMap.keys(), ...localMap.keys()]);
+  const merged = [];
+  allIds.forEach(id=>{
+    const l = localMap.get(id), r = remoteMap.get(id);
+    if(l && !r){ merged.push(l); return; } // 自分だけが新規追加した案件
+    if(r && !l){ merged.push(r); return; } // 相手だけが新規追加した案件
+    const lt = l.updatedAt||0, rt = r.updatedAt||0;
+    merged.push(lt>=rt ? l : r); // 案件ごとに、より新しく編集された方を採用
+  });
+  merged.sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
+  return merged;
+}
+
 async function pushToRemote(){
   if(!githubConfigured()){
     setSyncStatus("", "未設定(⚙で設定)");
@@ -768,19 +784,18 @@ async function pushToRemote(){
     // 競合チェック: pushする直前に最新shaを確認
     const latest = await githubGetFile();
     if(latest.exists && remoteSha && latest.sha !== remoteSha){
-      const ok = confirm(
-        "他の人が先に保存したデータがあります。\n\n"+
-        "「OK」→ 相手の最新データを取得してから、あなたの変更を見比べてやり直します(あなたの変更はローカルに残ります)\n"+
-        "「キャンセル」→ このまま自分の内容で上書き保存します"
+      const remoteProjects = (latest.data && Array.isArray(latest.data.projects)) ? latest.data.projects : [];
+      state.projects = mergeProjectsByUpdatedAt(state.projects, remoteProjects);
+      remoteSha = latest.sha;
+      saveLocal();
+      renderAll();
+      alert(
+        "他の人が先に保存していたので、案件ごとに新しい方の内容を自動で取り込みました。\n"+
+        "(あなたが今日編集した案件はそのまま残り、相手が編集した別の案件はそちらの内容になっています)\n\n"+
+        "内容を確認して、問題なければもう一度「保存して同期」を押してください。"
       );
-      if(ok){
-        state = latest.data && Array.isArray(latest.data.projects) ? latest.data : state;
-        remoteSha = latest.sha;
-        saveLocal();
-        renderAll();
-        setSyncStatus("pending", "最新データを取得しました。内容を確認して再度保存してください");
-        return;
-      }
+      setSyncStatus("pending", "自動で統合しました。内容確認後、再度保存してください");
+      return;
     }
     const shaToUse = latest.exists ? latest.sha : null;
     const putRes = await githubPutFile(state, shaToUse);
@@ -793,8 +808,12 @@ async function pushToRemote(){
   }
 }
 
-function markDirty(){
+function markDirty(projectId){
   dirty = true;
+  if(projectId){
+    const p = findProject(projectId);
+    if(p) p.updatedAt = Date.now();
+  }
   saveLocal();
   setSyncStatus("pending", "未保存の変更あり");
 }
@@ -830,7 +849,7 @@ function moveProject(id, direction){
   const tmp = p.sortOrder;
   p.sortOrder = other.sortOrder;
   other.sortOrder = tmp;
-  markDirty();
+  markDirty(p.id);
   renderAll();
 }
 
@@ -1890,7 +1909,7 @@ function bindOverviewEvents(){
       const p = findProject(el.dataset.addTask);
       p.tasks.push({id:uid(), name:"", assignee:"", status:"未着手", notes:"", start:"", complete:""});
       openProjectIds.add(p.id);
-      markDirty(); renderAll();
+      markDirty(p.id); renderAll();
     });
   });
   bindTaskTableEditEvents(main);
@@ -1927,7 +1946,7 @@ function bindTaskTableEditEvents(main){
       const [moved] = p.tasks.splice(fromIdx,1);
       p.tasks.splice(p.tasks.findIndex(t=>t.id===targetTaskId), 0, moved);
       draggingTaskId = null;
-      markDirty();
+      markDirty(p.id);
       renderAll();
     });
   });
@@ -1944,7 +1963,7 @@ function bindTaskTableEditEvents(main){
     el.addEventListener("click",()=>{
       const p = findProject(el.dataset.project);
       p.tasks = p.tasks.filter(t=>t.id!==el.dataset.delTask);
-      markDirty(); renderAll();
+      markDirty(p.id); renderAll();
     });
   });
   main.querySelectorAll("tr[data-task]").forEach(row=>{
@@ -1965,7 +1984,7 @@ function bindTaskTableEditEvents(main){
         }else{
           t[inp.dataset.field] = inp.value;
         }
-        markDirty();
+        markDirty(p.id);
         if(inp.dataset.field==="status" || inp.dataset.field==="start" || inp.dataset.field==="complete" || inp.dataset.field==="assignee"){
           renderAll();
         }
@@ -2129,7 +2148,7 @@ function saveProjectModal(){
     const idx = state.projects.findIndex(x=>x.id===editingProjectId);
     state.projects[idx] = Object.assign(state.projects[idx], p);
   }
-  markDirty();
+  markDirty(p.id);
   closeProjectModal();
   renderAll();
 }
