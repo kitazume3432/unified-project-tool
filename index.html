@@ -269,8 +269,9 @@
   /* 着手・完了は「月/日」のみのテキスト入力(年は内部で保持) */
   input.date-md-input{ width:56px; text-align:left; font-family:var(--num-font); }
   .date-cell{display:flex;align-items:center;gap:0;}
-  .date-cell .date-md-input{width:36px;padding:6px 2px;}
-  .cal-btn{border:none;background:none;cursor:pointer;font-size:12px;padding:0;margin:0;line-height:1;flex-shrink:0;}
+  table.task-table td.date-td{width:1%;white-space:nowrap;padding-left:6px;padding-right:6px;}
+  .date-cell .date-md-input{width:28px;padding:6px 1px;font-size:11px;}
+  .cal-btn{border:none;background:none;cursor:pointer;font-size:11px;padding:0;margin:0;line-height:1;flex-shrink:0;}
   .cal-btn:hover{opacity:.7;}
   input.date-md-input::placeholder{ color:var(--text-muted); opacity:.5; }
   .p-body{padding:14px 18px 18px 18px;display:none;}
@@ -1767,8 +1768,8 @@ function renderTaskRow(p, t){
         </select>
       </td>
       <td><input type="text" value="${escapeHtml(t.notes)}" data-field="notes" style="min-width:180px;"></td>
-      <td><div class="date-cell"><input type="text" class="date-md-input" value="${monthDayDisplay(t.start)}" data-field="start" data-full="${escapeHtml(t.start)}" placeholder="月/日"><button type="button" class="cal-btn" data-cal-field="start" data-cal-task="${t.id}" data-cal-project="${p.id}" title="カレンダーから選択">📅</button></div></td>
-      <td><div class="date-cell"><input type="text" class="date-md-input ${overdue?'overdue-input':''}" value="${monthDayDisplay(t.complete)}" data-field="complete" data-full="${escapeHtml(t.complete)}" placeholder="月/日" title="${overdue?'完了予定日を過ぎています':''}"><button type="button" class="cal-btn" data-cal-field="complete" data-cal-task="${t.id}" data-cal-project="${p.id}" title="カレンダーから選択">📅</button></div></td>
+      <td class="date-td"><div class="date-cell"><input type="text" class="date-md-input" value="${monthDayDisplay(t.start)}" data-field="start" data-full="${escapeHtml(t.start)}" placeholder="月/日"><button type="button" class="cal-btn" data-cal-field="start" data-cal-task="${t.id}" data-cal-project="${p.id}" title="カレンダーから選択">📅</button></div></td>
+      <td class="date-td"><div class="date-cell"><input type="text" class="date-md-input ${overdue?'overdue-input':''}" value="${monthDayDisplay(t.complete)}" data-field="complete" data-full="${escapeHtml(t.complete)}" placeholder="月/日" title="${overdue?'完了予定日を過ぎています':''}"><button type="button" class="cal-btn" data-cal-field="complete" data-cal-task="${t.id}" data-cal-project="${p.id}" title="カレンダーから選択">📅</button></div></td>
       <td class="task-row-actions">${overdue?'<span class="overdue-flag" title="期限切れ">⚠</span>':''}<button class="icon" data-del-task="${t.id}" data-project="${p.id}" title="削除">✕</button></td>
     </tr>`;
 }
