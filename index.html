@@ -268,6 +268,10 @@
 
   /* 着手・完了は「月/日」のみのテキスト入力(年は内部で保持) */
   input.date-md-input{ width:56px; text-align:left; font-family:var(--num-font); }
+  .date-cell{display:flex;align-items:center;gap:2px;}
+  .date-cell .date-md-input{width:48px;}
+  .cal-btn{border:none;background:none;cursor:pointer;font-size:13px;padding:0 2px;line-height:1;}
+  .cal-btn:hover{opacity:.7;}
   input.date-md-input::placeholder{ color:var(--text-muted); opacity:.5; }
   .p-body{padding:14px 18px 18px 18px;display:none;}
   .p-body.open{display:block;}
@@ -1763,8 +1767,8 @@ function renderTaskRow(p, t){
         </select>
       </td>
       <td><input type="text" value="${escapeHtml(t.notes)}" data-field="notes" style="min-width:120px;"></td>
-      <td><input type="text" class="date-md-input" value="${monthDayDisplay(t.start)}" data-field="start" data-full="${escapeHtml(t.start)}" placeholder="月/日"></td>
-      <td><input type="text" class="date-md-input ${overdue?'overdue-input':''}" value="${monthDayDisplay(t.complete)}" data-field="complete" data-full="${escapeHtml(t.complete)}" placeholder="月/日" title="${overdue?'完了予定日を過ぎています':''}"></td>
+      <td><div class="date-cell"><input type="text" class="date-md-input" value="${monthDayDisplay(t.start)}" data-field="start" data-full="${escapeHtml(t.start)}" placeholder="月/日"><button type="button" class="cal-btn" data-cal-field="start" data-cal-task="${t.id}" data-cal-project="${p.id}" title="カレンダーから選択">📅</button></div></td>
+      <td><div class="date-cell"><input type="text" class="date-md-input ${overdue?'overdue-input':''}" value="${monthDayDisplay(t.complete)}" data-field="complete" data-full="${escapeHtml(t.complete)}" placeholder="月/日" title="${overdue?'完了予定日を過ぎています':''}"><button type="button" class="cal-btn" data-cal-field="complete" data-cal-task="${t.id}" data-cal-project="${p.id}" title="カレンダーから選択">📅</button></div></td>
       <td class="task-row-actions">${overdue?'<span class="overdue-flag" title="期限切れ">⚠</span>':''}<button class="icon" data-del-task="${t.id}" data-project="${p.id}" title="削除">✕</button></td>
     </tr>`;
 }
@@ -1916,7 +1920,40 @@ function bindOverviewEvents(){
   bindGanttEvents(main);
 }
 
+function openDatePicker(currentValue, onPick){
+  const inp = document.createElement("input");
+  inp.type = "date";
+  inp.style.position = "fixed";
+  inp.style.left = "-9999px";
+  inp.style.top = "0";
+  if(currentValue) inp.value = currentValue;
+  document.body.appendChild(inp);
+  let done = false;
+  inp.addEventListener("change", ()=>{
+    done = true;
+    onPick(inp.value);
+    if(document.body.contains(inp)) document.body.removeChild(inp);
+  });
+  inp.addEventListener("blur", ()=>{
+    setTimeout(()=>{ if(!done && document.body.contains(inp)) document.body.removeChild(inp); }, 300);
+  });
+  if(inp.showPicker){ inp.showPicker(); } else { inp.click(); inp.focus(); }
+}
+
 function bindTaskTableEditEvents(main){
+  main.querySelectorAll("[data-cal-field]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const p = findProject(btn.dataset.calProject);
+      const t = p && p.tasks.find(x=>x.id===btn.dataset.calTask);
+      if(!t) return;
+      const field = btn.dataset.calField;
+      openDatePicker(t[field], (val)=>{
+        t[field] = val;
+        markDirty(p.id);
+        renderAll();
+      });
+    });
+  });
   // タスク行のドラッグ&ドロップ並び替え
   let draggingTaskId = null;
   main.querySelectorAll("[data-drag-task]").forEach(handle=>{
