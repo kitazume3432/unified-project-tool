@@ -945,7 +945,7 @@ function renderGanttHtml(rows, dayPx, opts){
   });
   const valid = allDates.filter(Boolean);
 
-  let maxD = new Date(today.getFullYear(), today.getMonth(), today.getDate()+30);
+  let maxD = new Date(today.getFullYear(), today.getMonth(), today.getDate()+(opts.minForwardDays||30));
   valid.forEach(d=>{ if(d>maxD) maxD=d; });
   maxD = new Date(maxD.getFullYear(), maxD.getMonth(), maxD.getDate()+4);
 
@@ -1730,7 +1730,7 @@ function renderProjectCard(p){
       </div>
       ${(()=>{ const displayTasks = p.tasks.filter(t=>t.name!=="着工日"); return displayTasks.length===0
         ? '<div class="no-task-note">工程タスクはまだ登録されていません。下のボタンから追加できます。</div>'
-        : renderGanttHtml(buildGanttRowsForTaskList(displayTasks), 10, {detailed:true}) + renderTaskTable(p, displayTasks); })()}
+        : renderGanttHtml(buildGanttRowsForTaskList(displayTasks), 6, {detailed:true, minForwardDays:150}) + renderTaskTable(p, displayTasks); })()}
       <div class="add-task-row">
         <button class="ghost small" data-add-task="${p.id}">＋ タスク行を追加</button>
       </div>
