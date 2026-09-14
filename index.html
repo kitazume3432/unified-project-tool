@@ -1443,7 +1443,7 @@ function renderOverview(list, opts){
       <span class="count">${timelineSorted.length}件</span>
     </div>
     ${projectPhaseLegendHtml()}
-    ${renderGanttHtml(numberGanttRows(buildProjectGanttRows(timelineSorted)), 5, {pruneOld:false, tall:true, labelColumns:[
+    ${renderGanttHtml(numberGanttRows(buildProjectGanttRows(timelineSorted)), 2.5, {pruneOld:false, tall:true, labelColumns:[
       {title:"邸名", width:130},
       {title:"印", width:75},
       {title:"建設地", width:90},
