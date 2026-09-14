@@ -229,8 +229,8 @@
 
   .gantt-body-row{display:flex;}
   .gantt-labels{flex:0 0 190px;border-right:1px solid var(--line);overflow-y:visible;overflow-x:hidden;}
-  .gantt-wrap.tall .gantt-labels{flex-basis:605px;}
-  .gantt-wrap.tall .gantt-label-header{flex-basis:605px;}
+  .gantt-wrap.tall .gantt-labels{flex-basis:680px;}
+  .gantt-wrap.tall .gantt-label-header{flex-basis:680px;}
   .gantt-wrap.tall .gantt-label-row{font-size:11px;}
   .label-cols{display:flex;width:100%;height:100%;align-items:center;}
   .label-cols .lc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:6px;flex-shrink:0;}
@@ -548,8 +548,8 @@ const DEFAULT_TASKS = [
   "次回打合せ予定","プラン決定後打合せ予定","図面修正","展開図作成","見積修正",
   "パース作成","役所調査","プラン確定","平面詳細図作成","電気配線図作成","構造検討",
   "構造チェック・修正","基礎計算","地盤調査・地盤報告書","換気図面","照明プラン",
-  "長期申請前準備（外注）","長期第三者検査機関チェック","長期補正","確認申請準備",
-  "確認申請","確認補正","長期行政提出","地縄","地鎮祭予約","仮設電気依頼","契約",
+  "長期申請前準備（外注）","長期第三者検査機関チェック","確認申請準備",
+  "確認申請","長期行政提出","地縄","地鎮祭予約","仮設電気依頼","契約",
   "地盤調査予約","着工日"
 ];
 
@@ -1055,6 +1055,18 @@ function renderGanttHtml(rows, dayPx, opts){
 
 // 着工日(実績優先)を1つに決める共通ロジック。ソート・タイムライン両方で使う
 // 建設地から都道府県を取り除く(例: 群馬県前橋市... → 前橋市...)
+// 着工予定などの表示から年号を除き、月(または月/日)だけにする
+function withoutYear(dateStr){
+  if(!dateStr) return "";
+  // "YYYY-MM-DD" 形式
+  let m = String(dateStr).match(/^\d{4}-(\d{1,2})-(\d{1,2})$/);
+  if(m) return `${Number(m[1])}/${Number(m[2])}`;
+  // "YYYY/M" や "YYYY/M/D" 形式
+  m = String(dateStr).match(/^\d{4}\D+(\d{1,2})(?:\D+(\d{1,2}))?/);
+  if(m) return m[2] ? `${Number(m[1])}/${Number(m[2])}` : `${Number(m[1])}月`;
+  return dateStr; // 解釈できない形式はそのまま
+}
+
 function stripPrefecture(addr){
   if(!addr) return addr;
   return addr.replace(/^.{1,4}?(都|道|府|県)/,"");
@@ -1143,7 +1155,7 @@ function buildProjectGanttRows(projectList){
     const supColHtml = p.constructionManageStaff ? staffSquareHtml(p.constructionManageStaff.trim(), colorMaps.supervisor.get(p.constructionManageStaff.trim())||"#999") : "";
     rows.push({
       label: [p.name||"(案件名未設定)", shortAddr, p.floorArea?`${p.floorArea}坪`:"", p.designStaff1, p.constructionManageStaff].filter(Boolean).join(" ｜ "),
-      cols: [escapeHtml(p.name||"(案件名未設定)"), markIconsHtml(p), escapeHtml(shortAddr||""), escapeHtml(p.floorArea?`${p.floorArea}坪`:""), designColHtml, supColHtml, escapeHtml(p.note||"")],
+      cols: [escapeHtml(p.name||"(案件名未設定)"), markIconsHtml(p), escapeHtml(shortAddr||""), escapeHtml(p.floorArea?`${p.floorArea}坪`:""), designColHtml, supColHtml, escapeHtml(withoutYear(p.startMonth||p.startDate)), escapeHtml(p.note||"")],
       jumpId: p.id,
       segments
     });
@@ -1438,6 +1450,7 @@ function renderOverview(list, opts){
       {title:"延床面積", width:50},
       {title:"設計担当", width:70},
       {title:"現場監督", width:70},
+      {title:"着工予定", width:75},
       {title:"備考", width:120}
     ]})}`;
 
