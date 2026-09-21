@@ -514,10 +514,6 @@
       <div class="field"><label>リポジトリ名</label><input type="text" id="setRepo" placeholder="kansan-data"></div>
       <div class="field"><label>ファイルパス</label><input type="text" id="setPath" placeholder="unified-project-data.json"></div>
       <div class="field"><label>Personal Access Token</label><input type="password" id="setToken" placeholder="github_pat_..."></div>
-      <div class="field" style="grid-column:1/-1;">
-        <label>売上表パスワード(空欄なら売上表自体を非表示にできます)</label>
-        <input type="text" id="setSalesPassword" placeholder="例: 1234">
-      </div>
     </div>
     <div class="modal-sub" style="margin-top:18px;">データファイル(.json)から案件データを読み込み直す場合はこちら。現在のデータは上書きされます。</div>
     <div class="form-grid one">
@@ -549,6 +545,7 @@
   </div>
 </div>
 
+<script src="sales-password.js" onerror="window.SALES_PASSWORD=window.SALES_PASSWORD||'';"></script>
 <script>
 (function(){
 "use strict";
@@ -557,6 +554,8 @@
 const STORAGE_KEY = "unified-kanri-data-v1";
 const SETTINGS_KEY = "unified-kanri-settings-v1";
 const SKIP_AUTOPULL_KEY = "unified-kanri-skip-autopull";
+// 売上表を見るためのパスワード。別ファイル(sales-password.js)側で設定します。そのファイルが無い/未設定の場合は空扱い(売上表非表示)になります。
+const SALES_PASSWORD = (typeof window!=="undefined" && window.SALES_PASSWORD) || "";
 const SCHEMA_VERSION = 2;
 
 const DEFAULT_TASKS = [
@@ -668,7 +667,7 @@ function loadSettings(){
     const raw = localStorage.getItem(SETTINGS_KEY);
     if(raw) return JSON.parse(raw);
   }catch(e){}
-  return {owner:"kitazume3432", repo:"kansan-data", path:"unified-project-data.json", token:"", salesPassword:""};
+  return {owner:"kitazume3432", repo:"kansan-data", path:"unified-project-data.json", token:""};
 }
 function saveSettings(s){
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
@@ -1505,7 +1504,7 @@ function renderPeriodView(period){
   const list = state.projects.filter(p=>p.period===period);
 
   // 売上表の表示設定がオフの場合は、必ず申請工程表側に強制する
-  if((!settings.salesPassword || !salesUnlocked) && periodSubView==="table"){ periodSubView = "schedule"; }
+  if((!SALES_PASSWORD || !salesUnlocked) && periodSubView==="table"){ periodSubView = "schedule"; }
 
   // 期が変わったら担当フィルターをリセット
   if(periodStaffFilterPeriod !== period){
@@ -1530,7 +1529,7 @@ function renderPeriodView(period){
     </div>
     <div class="subview-tabs" style="flex-wrap:wrap;">
       <button class="sbtn ${periodSubView==='schedule'?'on':''}" data-subview="schedule">申請工程表</button>
-      ${settings.salesPassword?`<button class="sbtn ${periodSubView==='table'?'on':''}" data-subview="table">${salesUnlocked?'売上表':'🔒 売上表'}</button>`:""}
+      ${SALES_PASSWORD?`<button class="sbtn ${periodSubView==='table'?'on':''}" data-subview="table">${salesUnlocked?'売上表':'🔒 売上表'}</button>`:""}
       <span style="width:10px;"></span>
       <button class="sbtn ${periodStaffFilter===''?'on':''}" data-staff-filter="">全体</button>
       ${staffNames.map(([norm,display])=>`<button class="sbtn ${periodStaffFilter===norm?'on':''}" data-staff-filter="${escapeHtml(norm)}">${escapeHtml(display)}</button>`).join("")}
@@ -1893,7 +1892,7 @@ function bindOverviewEvents(){
   main.querySelectorAll("[data-subview]").forEach(btn=>{
     btn.addEventListener("click", ()=>{
       const target = btn.dataset.subview;
-      if(target==="table" && settings.salesPassword && !salesUnlocked){
+      if(target==="table" && SALES_PASSWORD && !salesUnlocked){
         openSalesAuthModal();
         return;
       }
@@ -2229,7 +2228,6 @@ function openSettingsModal(){
   document.getElementById("setRepo").value = settings.repo||"";
   document.getElementById("setPath").value = settings.path||"";
   document.getElementById("setToken").value = settings.token||"";
-  document.getElementById("setSalesPassword").value = settings.salesPassword||"";
   document.getElementById("settingsModalBackdrop").classList.add("open");
 }
 function closeSettingsModal(){
@@ -2247,7 +2245,7 @@ function closeSalesAuthModal(){
 }
 function submitSalesAuth(){
   const input = document.getElementById("salesAuthInput").value;
-  if(input === settings.salesPassword){
+  if(input === SALES_PASSWORD){
     salesUnlocked = true;
     closeSalesAuthModal();
     periodSubView = "table";
@@ -2261,8 +2259,7 @@ function saveSettingsModal(){
     owner: document.getElementById("setOwner").value.trim(),
     repo: document.getElementById("setRepo").value.trim(),
     path: document.getElementById("setPath").value.trim() || "kotei-kanri-data.json",
-    token: document.getElementById("setToken").value.trim(),
-    salesPassword: document.getElementById("setSalesPassword").value.trim()
+    token: document.getElementById("setToken").value.trim()
   };
   saveSettings(settings);
   closeSettingsModal();
