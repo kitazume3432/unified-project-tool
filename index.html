@@ -1570,7 +1570,7 @@ function renderSalesTable(list){
       <td>${escapeHtml(p.address)||"—"}</td>
       <td>${p.designStaff1?staffDotHtml(p.designStaff1.trim(), colorMaps.design.get(p.designStaff1.trim())||"#999"):"—"}</td>
       <td>${p.constructionManageStaff?staffSquareHtml(p.constructionManageStaff.trim(), colorMaps.supervisor.get(p.constructionManageStaff.trim())||"#999"):"—"}</td>
-      <td>${p.startDate?escapeHtml(p.startDate):p.startMonth?escapeHtml(p.startMonth):"—"}</td>
+      <td>${p.startMonth?escapeHtml(p.startMonth):p.startDate?escapeHtml(p.startDate):"—"}</td>
       <td>${escapeHtml(p.deliveryMonth)||"—"}</td>
       <td class="r">${fmtYen(p.contractAmount)}</td>
       <td class="r">${fmtYen(p.contractCost)}</td>
@@ -1608,7 +1608,7 @@ function renderScheduleTable(sortedList){
       <td class="r">${num||""}</td>
       <td>${escapeHtml(p.name)||"(案件名未設定)"}</td>
       <td class="r">${p.floorArea?escapeHtml(String(p.floorArea))+"坪":"—"}</td>
-      <td>${p.startDate?escapeHtml(p.startDate):p.startMonth?escapeHtml(p.startMonth):"—"}</td>
+      <td>${p.startMonth?escapeHtml(p.startMonth):p.startDate?escapeHtml(p.startDate):"—"}</td>
       <td>${escapeHtml(p.deliveryMonth)||"—"}</td>
       <td>${escapeHtml(p.address)||"—"}</td>
       <td>${escapeHtml(p.designStaff1)||"—"}</td>
