@@ -534,6 +534,21 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="salesAuthModalBackdrop">
+  <div class="modal" style="max-width:360px;">
+    <h2>売上表</h2>
+    <div class="modal-sub" id="salesAuthMsg">パスワードを入力してください</div>
+    <div class="form-grid one">
+      <div class="field"><input type="password" id="salesAuthInput" placeholder="パスワード"></div>
+    </div>
+    <div class="modal-sub" id="salesAuthErr" style="display:none;color:#A8503C;">パスワードが違います</div>
+    <div class="modal-actions">
+      <button class="ghost" id="btnCancelSalesAuth">閉じる</button>
+      <button class="primary" id="btnSalesAuthOk">ログイン</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
 "use strict";
@@ -1879,13 +1894,8 @@ function bindOverviewEvents(){
     btn.addEventListener("click", ()=>{
       const target = btn.dataset.subview;
       if(target==="table" && settings.salesPassword && !salesUnlocked){
-        const input = prompt("売上表のパスワードを入力してください");
-        if(input === settings.salesPassword){
-          salesUnlocked = true;
-        }else{
-          if(input !== null) alert("パスワードが違います。");
-          return;
-        }
+        openSalesAuthModal();
+        return;
       }
       periodSubView = target;
       renderMain();
@@ -2225,6 +2235,27 @@ function openSettingsModal(){
 function closeSettingsModal(){
   document.getElementById("settingsModalBackdrop").classList.remove("open");
 }
+
+function openSalesAuthModal(){
+  document.getElementById("salesAuthInput").value = "";
+  document.getElementById("salesAuthErr").style.display = "none";
+  document.getElementById("salesAuthModalBackdrop").classList.add("open");
+  setTimeout(()=>document.getElementById("salesAuthInput").focus(), 50);
+}
+function closeSalesAuthModal(){
+  document.getElementById("salesAuthModalBackdrop").classList.remove("open");
+}
+function submitSalesAuth(){
+  const input = document.getElementById("salesAuthInput").value;
+  if(input === settings.salesPassword){
+    salesUnlocked = true;
+    closeSalesAuthModal();
+    periodSubView = "table";
+    renderMain();
+  }else{
+    document.getElementById("salesAuthErr").style.display = "block";
+  }
+}
 function saveSettingsModal(){
   settings = {
     owner: document.getElementById("setOwner").value.trim(),
@@ -2256,6 +2287,11 @@ function init(){
   document.getElementById("btnSettings").addEventListener("click", openSettingsModal);
   document.getElementById("btnCancelSettings").addEventListener("click", closeSettingsModal);
   document.getElementById("btnSaveSettings").addEventListener("click", saveSettingsModal);
+  document.getElementById("btnCancelSalesAuth").addEventListener("click", closeSalesAuthModal);
+  document.getElementById("btnSalesAuthOk").addEventListener("click", submitSalesAuth);
+  document.getElementById("salesAuthInput").addEventListener("keydown", (e)=>{
+    if(e.key==="Enter") submitSalesAuth();
+  });
   document.getElementById("btnResetLocal").addEventListener("click", ()=>{
     if(confirm("この端末に保存されている変更内容をすべて消して、ファイルの初期データを読み込み直します。よろしいですか？")){
       localStorage.removeItem(STORAGE_KEY);
