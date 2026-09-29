@@ -2339,27 +2339,21 @@ function init(){
     setSyncStatus("", "未設定(⚙で設定)");
   }
 
-  // 定期的にリモートの更新有無だけ確認(内容は自動上書きしない)
+  // 定期的にリモートの更新を確認し、あれば自動で取り込む(自分が編集中の内容は案件ごとに守られる)
   setInterval(async ()=>{
     if(!githubConfigured()) return;
     try{
       const res = await githubGetFile();
       if(res.exists && remoteSha && res.sha !== remoteSha){
-        showRemoteUpdateBanner();
+        const remoteProjects = (res.data && Array.isArray(res.data.projects)) ? res.data.projects : [];
+        state.projects = mergeProjectsByUpdatedAt(state.projects, remoteProjects);
+        remoteSha = res.sha;
+        saveLocal();
+        renderAll();
+        setSyncStatus("ok", "他の人の更新を自動で反映しました "+new Date().toLocaleTimeString("ja-JP"));
       }
     }catch(e){ /* サイレント */ }
   }, 45000);
-}
-
-function showRemoteUpdateBanner(){
-  const div = document.getElementById("remoteUpdateBanner");
-  if(!div || div.style.display==="flex") return;
-  div.style.display = "flex";
-  div.innerHTML = `<span>他のメンバーが更新しました。最新データを取得しますか？</span><button id="btnApplyRemote">取得する</button>`;
-  document.getElementById("btnApplyRemote").addEventListener("click", async ()=>{
-    await pullFromRemote(false);
-    div.style.display = "none";
-  });
 }
 
 init();
