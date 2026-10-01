@@ -241,7 +241,8 @@
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;
   }
   .gantt-label-row:hover{background:var(--cream);}
-  .gantt-scroll{flex:1;overflow-x:auto;overflow-y:hidden;}
+  .gantt-scroll{flex:1;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;}
+  .gantt-scroll::-webkit-scrollbar{height:0;width:0;background:transparent;}
   .gantt-timeline{position:relative;}
   .gantt-body{position:relative;}
   .gantt-gridline{position:absolute;top:0;bottom:0;width:1px;background:var(--cream-dark);}
