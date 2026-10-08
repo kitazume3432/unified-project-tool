@@ -188,6 +188,11 @@
   .badge.done{background:var(--status-done);color:var(--white);}
   .badge.late{background:var(--danger);color:var(--white);}
   .badge.eco{background:var(--status-apply);color:var(--white);}
+  .badge.ground-yes{background:#B8602F;color:#fff;}
+  .badge.ground-no{background:#E4E0D4;color:#6B6558;}
+  .ground-chip{display:inline-block;padding:1px 8px;border-radius:9px;font-size:10px;font-weight:700;}
+  .ground-chip.yes{background:#B8602F;color:#fff;}
+  .ground-chip.no{background:#E4E0D4;color:#6B6558;}
   .staff-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:3px;vertical-align:middle;}
   .staff-square{display:inline-block;width:8px;height:8px;margin-right:3px;vertical-align:middle;}
   .mark-icon{
@@ -229,8 +234,8 @@
 
   .gantt-body-row{display:flex;}
   .gantt-labels{flex:0 0 190px;border-right:1px solid var(--line);overflow-y:visible;overflow-x:hidden;}
-  .gantt-wrap.tall .gantt-labels{flex-basis:680px;}
-  .gantt-wrap.tall .gantt-label-header{flex-basis:680px;}
+  .gantt-wrap.tall .gantt-labels{flex-basis:740px;}
+  .gantt-wrap.tall .gantt-label-header{flex-basis:740px;}
   .gantt-wrap.tall .gantt-label-row{font-size:11px;}
   .label-cols{display:flex;width:100%;height:100%;align-items:center;}
   .label-cols .lc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:6px;flex-shrink:0;}
@@ -857,7 +862,7 @@ function newProject(){
     method:"", floors:"", choki:"有", startDate:"",
     designStaff1:"", designStaff2:"", applicationStaff:"", constructionManageStaff:"", daiku:"",
     officeType:"kan", period:"", startMonth:"", deliveryMonth:"", subsidy:"",
-    kengaku:"", photoShoot:"", videoShoot:"",
+    kengaku:"", photoShoot:"", videoShoot:"", groundImprove:"",
     contractAmount:0, contractCost:0, completeAmount:0, completeCost:0, note:"",
     projectStatus:"進行中",
     sortOrder: Date.now(),
@@ -1181,7 +1186,7 @@ function buildProjectGanttRows(projectList){
     const supColHtml = p.constructionManageStaff ? staffSquareHtml(p.constructionManageStaff.trim(), colorMaps.supervisor.get(p.constructionManageStaff.trim())||"#999") : "";
     rows.push({
       label: [p.name||"(案件名未設定)", shortAddr, p.floorArea?`${p.floorArea}坪`:"", p.designStaff1, p.constructionManageStaff].filter(Boolean).join(" ｜ "),
-      cols: [escapeHtml(p.name||"(案件名未設定)"), markIconsHtml(p), escapeHtml(shortAddr||""), escapeHtml(p.floorArea?`${p.floorArea}坪`:""), designColHtml, supColHtml, escapeHtml(withoutYear(p.startMonth||p.startDate)), escapeHtml(p.note||"")],
+      cols: [escapeHtml(p.name||"(案件名未設定)"), markIconsHtml(p), groundChipHtml(p), escapeHtml(shortAddr||""), escapeHtml(p.floorArea?`${p.floorArea}坪`:""), designColHtml, supColHtml, escapeHtml(withoutYear(p.startMonth||p.startDate)), escapeHtml(p.note||"")],
       jumpId: p.id,
       segments
     });
@@ -1469,9 +1474,10 @@ function renderOverview(list, opts){
       <span class="count">${timelineSorted.length}件</span>
     </div>
     ${projectPhaseLegendHtml()}
-    ${renderGanttHtml(numberGanttRows(buildProjectGanttRows(timelineSorted)), 1.9, {pruneOld:false, tall:true, labelColumns:[
+    ${renderGanttHtml(numberGanttRows(buildProjectGanttRows(timelineSorted)), 1.85, {pruneOld:false, tall:true, labelColumns:[
       {title:"邸名", width:130},
       {title:"印", width:75},
+      {title:"地盤改良", width:60},
       {title:"建設地", width:90},
       {title:"延床面積", width:50},
       {title:"設計担当", width:70},
@@ -1674,6 +1680,17 @@ function staffSquareHtml(name, color){
   return `<span class="staff-square" style="background:${color};"></span>${escapeHtml(name)}`;
 }
 
+function groundBadgeHtml(p){
+  if(p.groundImprove==="あり") return '<span class="badge ground-yes" title="地盤改良工事あり">地盤改良あり</span>';
+  if(p.groundImprove==="なし") return '<span class="badge ground-no" title="地盤改良工事なし">地盤改良なし</span>';
+  return "";
+}
+function groundChipHtml(p){
+  if(p.groundImprove==="あり") return '<span class="ground-chip yes">あり</span>';
+  if(p.groundImprove==="なし") return '<span class="ground-chip no">なし</span>';
+  return "";
+}
+
 function markIconsHtml(p){
   let marks = "";
   if(p.kengaku) marks += `<span class="mark-icon mark-kengaku" title="見学会">見</span>`;
@@ -1693,7 +1710,7 @@ function renderProjectMetaLines(p){
   const roles = roleParts.join(" ／ ");
   const num = timelineNumberById[p.id];
   return `
-    <div class="p-name">${num?`<span class="tl-num">${num}.</span> `:""}${escapeHtml(p.name)||"(案件名未設定)"}${markIconsHtml(p)} ${isProjectDone(p)?'<span class="badge done">完了</span>':''} ${isProjectLate(p)?'<span class="badge late">完成予定超過</span>':''} ${p.choki==="有"?'<span class="badge">長期優良</span>':p.choki==="省エネ適判"?'<span class="badge eco">省エネ適判</span>':''} ${p.officeType==="sei"?'<span class="badge office">設計事務所</span>':''} ${p.period?`<span class="badge period">${escapeHtml(p.period)}</span>`:''}</div>
+    <div class="p-name">${num?`<span class="tl-num">${num}.</span> `:""}${escapeHtml(p.name)||"(案件名未設定)"}${markIconsHtml(p)} ${isProjectDone(p)?'<span class="badge done">完了</span>':''} ${isProjectLate(p)?'<span class="badge late">完成予定超過</span>':''} ${p.choki==="有"?'<span class="badge">長期優良</span>':p.choki==="省エネ適判"?'<span class="badge eco">省エネ適判</span>':''} ${groundBadgeHtml(p)} ${p.officeType==="sei"?'<span class="badge office">設計事務所</span>':''} ${p.period?`<span class="badge period">${escapeHtml(p.period)}</span>`:''}</div>
     <div class="p-meta">
       <span>${escapeHtml(p.address)||"建設地未設定"}</span>
       <span>${escapeHtml(p.constructionType)}${p.method?" / "+escapeHtml(p.method):""}${p.floors?" / "+escapeHtml(p.floors):""}</span>
@@ -2127,6 +2144,7 @@ const PROJECT_FIELDS = [
   {key:"method", label:"工法", type:"text"},
   {key:"floors", label:"階数", type:"text"},
   {key:"choki", label:"長期優良住宅", type:"select", options:["有","無","省エネ適判"]},
+  {key:"groundImprove", label:"地盤改良工事", type:"select", options:["","あり","なし"]},
   {key:"designStaff1", label:"設計担当１", type:"text"},
   {key:"designStaff2", label:"設計担当２", type:"text"},
   {key:"applicationStaff", label:"申請担当", type:"text"},
