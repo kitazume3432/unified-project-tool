@@ -769,17 +769,43 @@ async function pullFromRemote(showAlertIfNone){
       return;
     }
     remoteSha = res.sha;
+    let keptLocal = false;
     if(res.data && Array.isArray(res.data.projects)){
-      state = res.data;
+      // リモートを基準に取り込むが、まだ保存できていない自分の編集(より新しい更新日時を持つ案件)は残す
+      const m = mergePulledProjects(state.projects || [], res.data.projects);
+      keptLocal = m.keptLocal;
+      state = Object.assign({}, res.data, {projects: m.projects});
       saveLocal();
-      dirty = false;
+      dirty = keptLocal;
       renderAll();
     }
-    setSyncStatus("ok", "同期済み "+new Date().toLocaleTimeString("ja-JP"));
+    if(keptLocal){
+      setSyncStatus("pending", "未保存の変更あり(まもなく自動保存)");
+      scheduleAutoSave();
+    }else{
+      setSyncStatus("ok", "同期済み "+new Date().toLocaleTimeString("ja-JP"));
+    }
   }catch(e){
     console.error(e);
-    setSyncStatus("err", "取得エラー");
+    setSyncStatus("err", "取得エラー(トークンの有効期限・権限をご確認ください)");
   }
+}
+
+// 取得時の統合: リモートを正とし、ローカルに「リモートより新しい未保存の編集」がある案件だけ残す
+function mergePulledProjects(localProjects, remoteProjects){
+  const localMap = new Map(localProjects.map(p=>[p.id,p]));
+  const remoteIds = new Set(remoteProjects.map(p=>p.id));
+  let keptLocal = false;
+  const merged = remoteProjects.map(r=>{
+    const l = localMap.get(r.id);
+    if(l && (l.updatedAt||0) > (r.updatedAt||0)){ keptLocal = true; return l; }
+    return r;
+  });
+  localProjects.forEach(l=>{
+    if(!remoteIds.has(l.id) && (l.updatedAt||0) > 0){ keptLocal = true; merged.push(l); }
+  });
+  merged.sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
+  return {projects: merged, keptLocal};
 }
 
 function mergeProjectsByUpdatedAt(localProjects, remoteProjects){
